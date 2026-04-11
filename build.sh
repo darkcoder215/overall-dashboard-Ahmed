@@ -277,7 +277,22 @@ copy_static_tool \
 
 # =====================================================================
 # 3. Chatbot — Vite static build (BASE_PATH=/chatbot/)
+#
+# The chatbot talks to Supabase Edge Functions directly from the browser
+# (authenticate / chat / process-document). Vite inlines `import.meta.env.VITE_*`
+# at BUILD time, so if these vars aren't exported here the compiled bundle
+# ends up with string literals like `"undefined/functions/v1/chat"` and
+# `Authorization: "Bearer undefined"` — and every call fails.
+#
+# Defaults match the unified Thmanyah Supabase project declared in
+# Overall-Dashboard/config.js. A Vercel project-level env var with the same
+# name overrides the default (shell `${VAR:-default}` semantics).
 # =====================================================================
+: "${VITE_SUPABASE_URL:=https://hbnvbfcwrfanpayxulih.supabase.co}"
+: "${VITE_SUPABASE_PUBLISHABLE_KEY:=sb_publishable_P_AoE0x-HsqrJTarwZOT7Q_0UE2trZv}"
+export VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY
+log "Using VITE_SUPABASE_URL=$VITE_SUPABASE_URL"
+
 BASE_PATH="/chatbot/" \
 VITE_BASE_PATH="/chatbot/" \
   build_tool \
