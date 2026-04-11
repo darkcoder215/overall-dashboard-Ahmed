@@ -189,7 +189,7 @@ function LevelGroup({ level, employees, color, searchMatches }: {
             key={emp.id}
             emp={emp}
             color={color}
-            onClick={() => { window.location.href = `/employees/${emp.id}`; }}
+            onClick={() => { window.location.href = `/employees/view?id=${emp.id}`; }}
           />
         ))}
         {!showAll && remaining > 0 && (
@@ -453,7 +453,7 @@ function ManagerCard({ node, managerMap, deptColors, depth, searchMatches, expan
                     <EmployeeCard
                       emp={report}
                       color={reportColor}
-                      onClick={() => { window.location.href = `/employees/${report.id}`; }}
+                      onClick={() => { window.location.href = `/employees/view?id=${report.id}`; }}
                     />
                   </motion.div>
                 );

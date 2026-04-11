@@ -506,7 +506,7 @@ export default function ProbationPage() {
                           {/* Employee profile link */}
                           {group.employee && (
                             <Link
-                              href={`/employees/${group.employee.id}`}
+                              href={`/employees/view?id=${group.employee.id}`}
                               className="inline-flex items-center gap-2 font-ui text-[13px] text-brand-blue hover:text-brand-blue/80 transition-colors bg-brand-blue/5 px-4 py-2 rounded-lg"
                             >
                               <LinkIcon className="w-3.5 h-3.5" />

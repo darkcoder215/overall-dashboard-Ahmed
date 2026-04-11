@@ -58,7 +58,7 @@ export default function UploadPage() {
 
         if (data.stage === 'complete') {
           setTimeout(() => {
-            router.push(`/transcript/${podcastId}`);
+            router.push(`/transcript/view?id=${podcastId}`);
           }, 1500);
           return;
         }

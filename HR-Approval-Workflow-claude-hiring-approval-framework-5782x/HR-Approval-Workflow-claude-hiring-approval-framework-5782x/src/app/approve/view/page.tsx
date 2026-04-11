@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ShieldCheck,
@@ -28,7 +28,13 @@ import { getRequestById, approveStep, rejectStep } from "@/lib/store";
 import { VacancyRequest } from "@/lib/types";
 
 export default function ApprovePage() {
-  return <AuthProvider><ApproveContent /></AuthProvider>;
+  return (
+    <AuthProvider>
+      <Suspense fallback={null}>
+        <ApproveContent />
+      </Suspense>
+    </AuthProvider>
+  );
 }
 
 function ApproveContent() {
@@ -38,9 +44,9 @@ function ApproveContent() {
 }
 
 function ApproveView() {
-  const params = useParams();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const requestId = searchParams.get("id") ?? "";
   const [request, setRequest] = useState<VacancyRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState("");
@@ -54,10 +60,10 @@ function ApproveView() {
   const stepIndex = stepParam ? parseInt(stepParam) : -1;
 
   useEffect(() => {
-    const r = getRequestById(params.id as string);
+    const r = getRequestById(requestId);
     setRequest(r || null);
     setLoading(false);
-  }, [params.id]);
+  }, [requestId]);
 
   const handleApprove = () => {
     if (!request) return;
@@ -135,7 +141,7 @@ function ApproveView() {
               : "أوقفنا المسار وأشعرنا مقدم الطلب بالرفض."}
           </p>
           <div className="flex gap-3 justify-center">
-            <Link href={`/track/${request.id}`}>
+            <Link href={`/track/view?id=${request.id}`}>
               <Button variant="secondary">عرض الطلب</Button>
             </Link>
             <Link href="/dashboard">

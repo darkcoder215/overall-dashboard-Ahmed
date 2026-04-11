@@ -11,6 +11,9 @@ _build-logs/
 **/.turbo/
 **/.vercel/
 
+# ── Next.js auto-generated type file (created by `next build`) ──
+**/next-env.d.ts
+
 # ── Envs ──
 .env
 .env.local

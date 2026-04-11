@@ -401,13 +401,13 @@ function RequestCard({ request }: { request: VacancyRequest }) {
         </div>
 
         <div className="flex gap-2 shrink-0">
-          <Link href={`/track/${request.id}`}>
+          <Link href={`/track/view?id=${request.id}`}>
             <Button variant="ghost" size="sm" icon={<Eye className="w-4 h-4" />}>
               عرض
             </Button>
           </Link>
           {request.status !== "approved" && request.status !== "rejected" && (
-            <Link href={`/approve/${request.id}?step=${request.currentApprovalStep}`}>
+            <Link href={`/approve/view?id=${request.id}&step=${request.currentApprovalStep}`}>
               <Button variant="secondary" size="sm" icon={<ShieldCheck className="w-4 h-4" />}>
                 اعتماد
               </Button>

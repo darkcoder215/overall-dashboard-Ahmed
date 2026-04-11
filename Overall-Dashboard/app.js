@@ -31,6 +31,7 @@ function init() {
   loadTheme();
   attachNavListeners();
   attachSearchListeners();
+  attachDelightListeners();
   initSupabase();
   bootstrap();
 }
@@ -338,6 +339,9 @@ function loadTheme() {
 
 // ── Rendering ────────────────────────────────────────────────────
 function renderAll() {
+  // Reset the card stagger counter so each full render sends the cascade
+  // from the first card again instead of continuing an ever-growing delay.
+  resetCardStagger();
   renderStats();
   renderHomeToolsGrid();
   renderAllToolsView();
@@ -349,10 +353,42 @@ function renderStats() {
   const enabled = state.tools.filter(t => t.enabled).length;
   const favs = state.favorites.size;
   const cats = new Set(state.tools.map(t => t.category)).size;
-  setText('statTotalTools', String(total));
-  setText('statEnabledTools', String(enabled));
-  setText('statFavorites', String(favs));
-  setText('statCategories', String(cats));
+  animateCount('statTotalTools', total);
+  animateCount('statEnabledTools', enabled);
+  animateCount('statFavorites', favs);
+  animateCount('statCategories', cats);
+}
+
+// Counts a stat element from its current value up (or down) to `target`.
+// Adds `.pulse` briefly so CSS can flash the accent colour.
+function animateCount(id, target) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const prev = parseInt(el.textContent, 10);
+  const from = Number.isFinite(prev) ? prev : 0;
+  if (from === target) { el.textContent = String(target); return; }
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion) {
+    el.textContent = String(target);
+    return;
+  }
+  const duration = 700; // ms
+  const start = performance.now();
+  const easeOut = (t) => 1 - Math.pow(1 - t, 3);
+  function step(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const v = Math.round(from + (target - from) * easeOut(t));
+    el.textContent = String(v);
+    if (t < 1) requestAnimationFrame(step);
+    else {
+      el.textContent = String(target);
+      el.classList.remove('pulse');
+      // Force reflow so the animation can replay on the next update.
+      void el.offsetWidth;
+      el.classList.add('pulse');
+    }
+  }
+  requestAnimationFrame(step);
 }
 
 function renderHomeToolsGrid() {
@@ -405,6 +441,11 @@ function renderFavoritesView() {
   favList.forEach(t => mount.appendChild(buildToolCard(t)));
 }
 
+// Global counter so every card rendered in a single tick gets a unique
+// --card-index, which the CSS animation reads for the cascade effect.
+let __cardRenderIndex = 0;
+function resetCardStagger() { __cardRenderIndex = 0; }
+
 function buildToolCard(tool) {
   const card = document.createElement('article');
   card.className = 'tool-card' + (tool.enabled === false ? ' disabled' : '');
@@ -413,11 +454,16 @@ function buildToolCard(tool) {
   card.setAttribute('aria-label', tool.name_ar);
   const accent = TOOL_ACCENTS[tool.slug] || 'green';
   card.setAttribute('data-accent', accent);
+  // Stagger entrance: every new card in this render pass waits a little
+  // longer. Reset from renderAll() so the first card in each grid starts
+  // fresh.
+  card.style.setProperty('--card-index', String(__cardRenderIndex++));
 
   const iconSvg = ICONS[tool.icon] || ICONS['layout-grid'];
   const isFav = tool.id && state.favorites.has(tool.id);
 
   card.innerHTML = `
+    <div class="tool-card-sheen" aria-hidden="true"></div>
     <header class="tool-card-head">
       <div class="tool-card-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
@@ -440,18 +486,88 @@ function buildToolCard(tool) {
   `;
 
   // Favorite toggle (stops propagation so it doesn't also open the tool).
-  card.querySelector('[data-fav]').addEventListener('click', (e) => {
+  const favBtn = card.querySelector('[data-fav]');
+  favBtn.addEventListener('click', (e) => {
     e.stopPropagation();
+    // Visual flourish: pop the star + emit sparkles even when the backend
+    // save fails (e.g. guest user). Feels instant and clearly acknowledged.
+    favBtn.classList.remove('popping');
+    void favBtn.offsetWidth;
+    favBtn.classList.add('popping');
+    emitSparkles(favBtn, 6);
     toggleFavorite(tool);
   });
 
-  const open = (e) => openToolInTab(tool);
+  // Cursor-driven 3D tilt + sheen position.
+  attachCardTilt(card);
+
+  const open = (e) => {
+    if (tool.enabled === false) {
+      // Polite head-shake. Also emit a tiny toast so the user knows why.
+      card.classList.remove('shake');
+      void card.offsetWidth;
+      card.classList.add('shake');
+      showToast('هذه الأداة قيد التحضير.');
+      return;
+    }
+    openToolInTab(tool);
+  };
   card.addEventListener('click', open);
   card.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); }
   });
 
   return card;
+}
+
+// ── Card tilt + sheen: tracks mouse position and writes CSS variables.
+//    Uses rAF throttling so we never spam the style system. Disabled when
+//    prefers-reduced-motion is on.
+function attachCardTilt(card) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+  let frame = 0;
+  let lastX = 0, lastY = 0;
+
+  card.addEventListener('pointermove', (e) => {
+    const rect = card.getBoundingClientRect();
+    lastX = (e.clientX - rect.left) / rect.width;
+    lastY = (e.clientY - rect.top) / rect.height;
+    if (frame) return;
+    frame = requestAnimationFrame(() => {
+      frame = 0;
+      const rotY = (lastX - 0.5) * 6;   // ±3°
+      const rotX = (0.5 - lastY) * 6;   // ±3°
+      card.style.setProperty('--tilt-x', rotX.toFixed(2) + 'deg');
+      card.style.setProperty('--tilt-y', rotY.toFixed(2) + 'deg');
+      card.style.setProperty('--mx', (lastX * 100).toFixed(1) + '%');
+      card.style.setProperty('--my', (lastY * 100).toFixed(1) + '%');
+    });
+  });
+  card.addEventListener('pointerleave', () => {
+    if (frame) { cancelAnimationFrame(frame); frame = 0; }
+    card.style.setProperty('--tilt-x', '0deg');
+    card.style.setProperty('--tilt-y', '0deg');
+  });
+}
+
+// Emits a few short-lived sparkle particles from a button. Each particle
+// picks a random angle via CSS vars (--spx, --spy) so they fan outward.
+function emitSparkles(target, count = 6) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+  for (let i = 0; i < count; i++) {
+    const s = document.createElement('span');
+    s.className = 'sparkle';
+    const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
+    const dist = 28 + Math.random() * 16;
+    s.style.color = i % 2 === 0 ? '#FFBC0A' : 'rgb(var(--accent-rgb))';
+    s.style.setProperty('--spx', `calc(-50% + ${Math.cos(angle) * dist}px)`);
+    s.style.setProperty('--spy', `calc(-50% + ${Math.sin(angle) * dist}px)`);
+    s.style.animationDelay = (i * 20) + 'ms';
+    target.appendChild(s);
+    setTimeout(() => s.remove(), 900 + i * 20);
+  }
 }
 
 // ── Favorites ────────────────────────────────────────────────────
@@ -615,6 +731,129 @@ function showToast(msg) {
   t.hidden = false;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => { t.hidden = true; }, 2800);
+}
+
+// ════════════════════════════════════════════════════════════════
+// Delight layer — easter eggs and micro-interactions
+// ════════════════════════════════════════════════════════════════
+
+function attachDelightListeners() {
+  // ── 7-click logo easter egg ───────────────────────────────────
+  // Clicking the sidebar logo seven times in under 3 seconds fires
+  // a small confetti burst and a friendly toast. Rewards the curious.
+  const logo = document.querySelector('.sidebar-logo');
+  if (logo) {
+    let taps = 0;
+    let resetTimer = null;
+    logo.addEventListener('click', () => {
+      taps += 1;
+      logo.classList.remove('logo-pop');
+      void logo.offsetWidth;
+      logo.classList.add('logo-pop');
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { taps = 0; }, 3000);
+      if (taps >= 7) {
+        taps = 0;
+        dropConfetti(60);
+        showToast('٧ مرات؟ أنت مصمّم حقيقي. 🎉');
+      } else if (taps === 5) {
+        // Nudge at 5 — "two to go".
+        showToast('اثنتان بعد… 👀');
+      }
+    });
+  }
+
+  // ── Konami code ────────────────────────────────────────────────
+  // ↑ ↑ ↓ ↓ ← → ← → B A  — fires a bigger confetti shower and the
+  // secret "developer mode" toast. Doesn't unlock anything, just fun.
+  const konami = [
+    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
+    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
+    'b', 'a',
+  ];
+  let kIdx = 0;
+  window.addEventListener('keydown', (e) => {
+    // Ignore when typing in inputs.
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (key === konami[kIdx]) {
+      kIdx += 1;
+      if (kIdx === konami.length) {
+        kIdx = 0;
+        dropConfetti(120);
+        showToast('وضع المطوّر مفعّل! (ليس فعلاً 🙂)');
+      }
+    } else {
+      // Allow restart if the first key of the sequence matches.
+      kIdx = key === konami[0] ? 1 : 0;
+    }
+  });
+
+  // ── "T" for Thmanyah secret: pressing the key 'T' three times in a
+  //    row turns the page theme upside down for a second. Tiny joke.
+  let tTaps = 0;
+  let tTimer = null;
+  window.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+    if (e.key !== 't' && e.key !== 'T') { tTaps = 0; return; }
+    tTaps += 1;
+    clearTimeout(tTimer);
+    tTimer = setTimeout(() => { tTaps = 0; }, 1200);
+    if (tTaps >= 3) {
+      tTaps = 0;
+      const main = document.querySelector('.main-content');
+      if (!main) return;
+      main.style.transition = 'transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
+      main.style.transform = 'rotate(360deg)';
+      setTimeout(() => {
+        main.style.transform = '';
+        setTimeout(() => { main.style.transition = ''; }, 820);
+      }, 820);
+      showToast('دوّارة ثمانية 🌀');
+    }
+  });
+}
+
+// Spawns `count` confetti particles that fall from the top of the viewport.
+// Uses CSS variables to randomize horizontal drift, duration, and spin.
+function dropConfetti(count = 60) {
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduce) return;
+  let layer = document.querySelector('.confetti-layer');
+  if (!layer) {
+    layer = document.createElement('div');
+    layer.className = 'confetti-layer';
+    document.body.appendChild(layer);
+  }
+  const colors = [
+    '#00C17A', '#0072F9', '#F24935', '#FFBC0A', '#FF9172', '#FF4D00',
+  ];
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement('span');
+    piece.className = 'confetti';
+    const left = Math.random() * 100;
+    const drift = (Math.random() - 0.5) * 200; // ±100px horizontal
+    const dur = 2.4 + Math.random() * 1.8;
+    const rot = 360 + Math.random() * 720;
+    const color = colors[i % colors.length];
+    piece.style.left = left + 'vw';
+    piece.style.background = color;
+    piece.style.setProperty('--cfx', drift + 'px');
+    piece.style.setProperty('--cfd', dur + 's');
+    piece.style.setProperty('--cfr', rot + 'deg');
+    piece.style.animationDelay = (Math.random() * 0.4) + 's';
+    // Alternate shapes: rectangles and circles.
+    if (i % 3 === 0) piece.style.borderRadius = '50%';
+    if (i % 5 === 0) piece.style.width = '6px';
+    layer.appendChild(piece);
+    setTimeout(() => piece.remove(), (dur + 0.6) * 1000);
+  }
+  // Tidy up the layer a moment after the longest animation completes.
+  setTimeout(() => {
+    if (layer && !layer.children.length) layer.remove();
+  }, 5000);
 }
 
 // ── Boot ─────────────────────────────────────────────────────────

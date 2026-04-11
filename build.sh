@@ -112,6 +112,12 @@ EOF
 # Build wrapper: runs a command in a subshell, captures the exit code,
 # and either copies the output to $OUT_DIR/<slug> or writes a placeholder.
 #
+# If HIDE_APP_API=1 is set in the caller's env, the tool's
+# `src/app/api/` folder is temporarily moved aside during the build.
+# Next.js `output: "export"` chokes on API route handlers, so we
+# swap them out, run the build, and restore them afterwards. A trap
+# guarantees the folder comes back even if the build crashes.
+#
 # Args: slug human_name tool_dir dist_subdir build_cmd...
 build_tool() {
   local slug="$1" name="$2" tool_dir="$3" dist_subdir="$4"
@@ -139,6 +145,16 @@ build_tool() {
     set +e
     cd "$tool_dir" || exit 97
 
+    # If HIDE_APP_API=1, rename src/app/api aside for the duration of
+    # the build and guarantee its restoration via EXIT trap.
+    local api_hidden=""
+    if [ "${HIDE_APP_API:-0}" = "1" ] && [ -d src/app/api ]; then
+      log "[$slug] HIDE_APP_API=1 → moving src/app/api → src/app/_api_hidden_for_export"
+      mv src/app/api src/app/_api_hidden_for_export
+      api_hidden=1
+      trap 'if [ -n "$api_hidden" ] && [ -d src/app/_api_hidden_for_export ]; then mv src/app/_api_hidden_for_export src/app/api; fi' EXIT
+    fi
+
     # Reuse node_modules if SKIP_INSTALL is set, otherwise install fresh.
     if [ -z "${SKIP_INSTALL:-}" ] || [ ! -d node_modules ]; then
       log "[$slug] installing dependencies…"
@@ -165,6 +181,12 @@ build_tool() {
     fi
   )
   local rc=$?
+
+  # Belt + braces: if the subshell somehow exited without running the
+  # trap (e.g. SIGKILL), restore the hidden api folder from the parent.
+  if [ -d "$tool_dir/src/app/_api_hidden_for_export" ]; then
+    mv "$tool_dir/src/app/_api_hidden_for_export" "$tool_dir/src/app/api" || true
+  fi
 
   if [ $rc -ne 0 ]; then
     err "[$slug] build failed (rc=$rc) — writing placeholder"
@@ -246,21 +268,28 @@ VITE_BASE_PATH="/chatbot/" \
 
 # =====================================================================
 # 4. Social Listening — Vite static build
+# The top-level folder is a stub (`index.html` points at a non-existent
+# `/src/main.tsx`). The real client lives in `Data-Weaver/client/` with
+# its own vite.config.ts (`root: "client"`, `outDir: "dist/public"`).
+# We build Data-Weaver directly with `npx vite build` — bypassing its
+# `npm run build` which also esbuilds an Express server we don't need
+# in a static deploy.
 # =====================================================================
 BASE_PATH="/social-listening/" \
 VITE_BASE_PATH="/social-listening/" \
   build_tool \
     "social-listening" \
     "Social Listening" \
-    "$REPO_ROOT/Social-Listening---Final-Bassam-claude-debug-blank-page-3cSDv" \
-    "dist" \
-    npm run build
+    "$REPO_ROOT/Social-Listening---Final-Bassam-claude-debug-blank-page-3cSDv/Data-Weaver" \
+    "dist/public" \
+    npx vite build
 
 # =====================================================================
 # 5. Podcast & Video — Next.js static export
 # =====================================================================
 NEXT_EXPORT=1 \
 NEXT_BASE_PATH="/podcast-video" \
+HIDE_APP_API=1 \
   build_tool \
     "podcast-video" \
     "Podcast & Video Analysis" \
@@ -273,6 +302,7 @@ NEXT_BASE_PATH="/podcast-video" \
 # =====================================================================
 NEXT_EXPORT=1 \
 NEXT_BASE_PATH="/hr-approval" \
+HIDE_APP_API=1 \
   build_tool \
     "hr-approval" \
     "HR Approval Workflow" \

@@ -4,6 +4,10 @@ import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
+  // Unified-dashboard build sets BASE_PATH=/social-listening/ so all the
+  // hashed asset URLs are prefixed correctly when the tool is served from
+  // a subpath under the Overall Dashboard.
+  base: process.env.BASE_PATH || "/",
   plugins: [
     react(),
     runtimeErrorOverlay(),

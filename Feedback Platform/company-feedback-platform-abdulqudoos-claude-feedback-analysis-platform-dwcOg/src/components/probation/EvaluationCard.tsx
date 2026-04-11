@@ -121,7 +121,7 @@ export default function EvaluationCard({
                 <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                   <h3 className="font-ui font-bold text-[16px] truncate">{ev.employeeName}</h3>
                   {employee ? (
-                    <Link href={`/employees/${employee.id}`}>
+                    <Link href={`/employees/view?id=${employee.id}`}>
                       <Badge variant="info" className="cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap">
                         <LinkIcon className="w-3 h-3 ml-1 inline" />
                         مرتبط
@@ -524,7 +524,7 @@ export default function EvaluationCard({
               {/* ── Employee profile link ── */}
               {employee && (
                 <Link
-                  href={`/employees/${employee.id}`}
+                  href={`/employees/view?id=${employee.id}`}
                   className="block text-center font-ui text-[13px] text-brand-blue hover:text-brand-blue/80 transition-colors py-2 mt-2 border-t border-neutral-warm-gray/20 pt-4"
                 >
                   عرض الملف الشخصي للموظف &larr;

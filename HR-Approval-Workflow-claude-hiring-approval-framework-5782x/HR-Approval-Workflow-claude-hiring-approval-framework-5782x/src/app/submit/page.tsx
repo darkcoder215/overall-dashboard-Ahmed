@@ -384,7 +384,7 @@ function SubmitForm() {
     });
 
     setTimeout(() => {
-      router.push(`/track/${request.id}`);
+      router.push(`/track/view?id=${request.id}`);
     }, 800);
   };
 

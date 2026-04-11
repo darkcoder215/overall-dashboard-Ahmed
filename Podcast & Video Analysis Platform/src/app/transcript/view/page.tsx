@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { Suspense, useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowRight,
@@ -26,9 +26,17 @@ import LoadingSpinner from '@/components/ui/LoadingSpinner';
 import type { Podcast, Scene, SceneMetrics, SceneMetadata } from '@/types';
 
 export default function TranscriptPage() {
-  const params = useParams();
+  return (
+    <Suspense fallback={<LoadingSpinner />}>
+      <TranscriptInner />
+    </Suspense>
+  );
+}
+
+function TranscriptInner() {
+  const searchParams = useSearchParams();
   const router = useRouter();
-  const id = params.id as string;
+  const id = searchParams.get('id') ?? '';
 
   const [podcast, setPodcast] = useState<Podcast | null>(null);
   const [scenes, setScenes] = useState<Scene[]>([]);

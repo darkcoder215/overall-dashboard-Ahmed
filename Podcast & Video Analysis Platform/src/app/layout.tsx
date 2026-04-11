@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import ApiShimProvider from '@/components/providers/ApiShimProvider';
 
 export const metadata: Metadata = {
   title: 'ثمانية - أداة تحليل البودكاست',
@@ -14,7 +15,7 @@ export default function RootLayout({
   return (
     <html lang="ar" dir="rtl">
       <body className="min-h-screen bg-brand-offwhite">
-        {children}
+        <ApiShimProvider>{children}</ApiShimProvider>
       </body>
     </html>
   );

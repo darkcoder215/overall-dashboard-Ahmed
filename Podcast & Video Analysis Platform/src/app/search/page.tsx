@@ -197,7 +197,7 @@ export default function SearchPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
                   >
-                    <Link href={`/transcript/${result.podcastId}`}>
+                    <Link href={`/transcript/view?id=${result.podcastId}`}>
                       <div className="brand-card p-4 hover:shadow-brand-md transition-all cursor-pointer group">
                         <div className="flex items-start gap-3">
                           <div className="w-10 h-10 rounded-brand bg-brand-greenlight/30 flex items-center justify-center flex-shrink-0">
@@ -318,7 +318,7 @@ export default function SearchPage() {
                           {msg.sources.map((source, i) => (
                             <Link
                               key={i}
-                              href={`/transcript/${source.podcastId}`}
+                              href={`/transcript/view?id=${source.podcastId}`}
                               className="block text-[10px] text-brand-blue hover:underline font-ui"
                             >
                               {source.podcastTitle} - {source.sceneTitle}

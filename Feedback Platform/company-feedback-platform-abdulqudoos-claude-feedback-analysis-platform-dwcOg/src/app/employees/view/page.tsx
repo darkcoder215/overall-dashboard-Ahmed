@@ -1,7 +1,7 @@
 'use client';
 
-import { useMemo } from 'react';
-import { useParams } from 'next/navigation';
+import { useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { ArrowRight, Star, Shield, ClipboardCheck, Users, TrendingUp } from 'lucide-react';
@@ -67,13 +67,14 @@ const TRACK_COLORS: Record<string, string> = {
   'خطر': '#82003A',
 };
 
-export default function EmployeeProfilePage() {
-  const params = useParams();
+function EmployeeProfileInner() {
+  const searchParams = useSearchParams();
+  const employeeId = searchParams?.get('id') ?? null;
   const { data } = useData();
 
   const employee = useMemo(
-    () => data.employees.find(e => e.id === params?.id),
-    [data.employees, params?.id]
+    () => data.employees.find(e => e.id === employeeId),
+    [data.employees, employeeId]
   );
 
   // Match evaluations by employee name
@@ -566,5 +567,13 @@ export default function EmployeeProfilePage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function EmployeeProfilePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center py-20 font-body text-[16px] text-neutral-muted">جارٍ التحميل…</div>}>
+      <EmployeeProfileInner />
+    </Suspense>
   );
 }

@@ -84,7 +84,7 @@ export default function SearchPage() {
             `الموقع: ${emp.currentLocation}`,
             emp.isLeader ? 'قائد' : '',
           ].filter(Boolean),
-          link: `/employees/${emp.id}`,
+          link: `/employees/view?id=${emp.id}`,
         });
       }
     }

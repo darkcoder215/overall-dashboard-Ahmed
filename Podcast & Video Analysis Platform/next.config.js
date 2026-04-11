@@ -11,6 +11,13 @@ const basePath = process.env.NEXT_BASE_PATH || '';
 
 const nextConfig = {
   reactStrictMode: true,
+  // Expose NEXT_PUBLIC_STATIC_EXPORT + NEXT_PUBLIC_BASE_PATH to the
+  // browser bundle so the in-memory /api/* shim can detect when it's
+  // running inside a static export.
+  env: {
+    NEXT_PUBLIC_STATIC_EXPORT: isExport ? '1' : '0',
+    NEXT_PUBLIC_BASE_PATH: basePath,
+  },
   ...(isExport
     ? {
         output: 'export',

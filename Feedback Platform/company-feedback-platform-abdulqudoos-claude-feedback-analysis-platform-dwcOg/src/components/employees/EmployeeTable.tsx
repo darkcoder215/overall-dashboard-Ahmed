@@ -131,7 +131,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                   </td>
                   <td className="px-4 py-3">
                     <Link
-                      href={`/employees/${emp.id}`}
+                      href={`/employees/view?id=${emp.id}`}
                       className="text-brand-blue hover:text-brand-blue/80 transition-colors"
                     >
                       <ChevronLeft className="w-5 h-5" />

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { Suspense, useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowRight,
@@ -30,7 +30,13 @@ import { VacancyRequest } from "@/lib/types";
 import { STATUS_LABELS } from "@/lib/constants";
 
 export default function TrackPage() {
-  return <AuthProvider><TrackContent /></AuthProvider>;
+  return (
+    <AuthProvider>
+      <Suspense fallback={null}>
+        <TrackContent />
+      </Suspense>
+    </AuthProvider>
+  );
 }
 
 function TrackContent() {
@@ -40,18 +46,18 @@ function TrackContent() {
 }
 
 function TrackView() {
-  const params = useParams();
+  const searchParams = useSearchParams();
   const router = useRouter();
+  const requestId = searchParams.get("id") ?? "";
   const [request, setRequest] = useState<VacancyRequest | null>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    const id = params.id as string;
-    const r = getRequestById(id);
+    const r = getRequestById(requestId);
     setRequest(r || null);
     setLoading(false);
-  }, [params.id]);
+  }, [requestId]);
 
   const copyLink = () => {
     navigator.clipboard.writeText(window.location.href);

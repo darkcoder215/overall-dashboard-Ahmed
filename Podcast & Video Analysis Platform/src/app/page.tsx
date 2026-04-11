@@ -530,7 +530,7 @@ export default function DashboardPage() {
           <motion.div variants={stagger} className="space-y-3">
             {podcasts.map((podcast) => (
               <motion.div key={podcast.id} variants={fadeUp}>
-                <Link href={`/transcript/${podcast.id}`}>
+                <Link href={`/transcript/view?id=${podcast.id}`}>
                   <motion.div
                     whileHover={{ y: -2, x: -2 }}
                     className="brand-card p-5 hover:shadow-brand-lg transition-all duration-300 group cursor-pointer"
