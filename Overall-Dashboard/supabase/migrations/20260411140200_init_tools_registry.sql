@@ -35,6 +35,8 @@ alter table public.tools enable row level security;
 
 revoke all on public.tools from anon;
 
+-- Same-origin URLs: every tool is served as a subpath of the unified
+-- Vercel deploy (see build.sh + vercel.json at the repo root).
 insert into public.tools
   (slug, name_ar, name_en, description_ar, description_en, category, icon, url, position)
 values
@@ -43,34 +45,34 @@ values
    'تحليل أداء المعلقين الرياضيين عبر 32 معيارًا مهنيًا',
    'Sports commentary analysis across 32 professional criteria',
    'analytics', 'mic',
-   '../Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/index.html', 10),
+   '/commentator/', 10),
   ('social-listening',
    'أداة الرصد الاجتماعي', 'Social Listening',
    'رصد المحتوى الاجتماعي وتحليل التغريدات واصطياد المرشحين',
    'Social listening, tweet analysis and candidate hunting',
    'social', 'radio',
-   'http://localhost:8080', 20),
+   '/social-listening/', 20),
   ('chatbot',
    'مساعد ثمانية الذكي', 'Thmanyah AI Assistant',
    'دليلك الذكي للسياسات والمعلومات داخل ثمانية',
    'Internal AI assistant for policies and knowledge',
    'ai', 'message-square',
-   'http://localhost:8080', 30),
+   '/chatbot/', 30),
   ('podcast-video',
    'أداة تحليل البودكاست', 'Podcast & Video Analysis',
    'رفع وتحليل البودكاست والفيديو وتوليد التفريغات النصية',
    'Podcast & video analysis with transcript search',
    'content', 'video',
-   'http://localhost:3000', 40),
+   '/podcast-video/', 40),
   ('hr-approval',
    'نموذج طلب فتح شاغر وظيفي', 'HR Approval Workflow',
    'إدارة طلبات فتح الوظائف الشاغرة وتوجيهها للاعتماد',
    'Hiring vacancy requests and approval workflow',
    'hr', 'clipboard-check',
-   'http://localhost:3000', 50),
+   '/hr-approval/', 50),
   ('feedback-platform',
    'منصة تحليل التقييمات', 'Feedback Analysis',
    'تحليل تقييمات الموظفين وفترات التجربة والقادة',
    'Employee, probation and leader evaluations analysis',
    'hr', 'bar-chart-3',
-   'http://localhost:3000', 60);
+   '/feedback-platform/', 60);
