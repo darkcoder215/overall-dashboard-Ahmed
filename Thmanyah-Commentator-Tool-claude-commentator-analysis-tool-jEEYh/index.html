@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>أداة تحليل المعلقين — ثمانية</title>
+  <link rel="icon" type="image/png" href="Usable/thamanyah.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="Usable/thamanyah.png" alt="ثمانية" class="sidebar-logo">
+      <span class="sidebar-brand">أداة تحليل المعلقين</span>
+    </div>
+    <nav class="sidebar-nav">
+      <a href="#" class="nav-item active">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span>الرئيسية</span>
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        <span>تحليل جديد</span>
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+        <span>التقارير</span>
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>الإحصائيات</span>
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+        <span>النجوم</span>
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/></svg>
+        <span>المعايير</span>
+      </a>
+      <a href="#" class="nav-item">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>الإعدادات</span>
+      </a>
+    </nav>
+    <!-- Theme Switcher -->
+    <div class="sidebar-theme-switcher">
+      <span class="theme-switcher-label">المظهر</span>
+      <div class="theme-switcher-toggle" id="themeSwitcher" onclick="toggleTheme()">
+        <div class="theme-option theme-option-thmanyah active" data-theme="thmanyah">
+          <span class="theme-dot" style="background:#00C17A;"></span>
+          <span>ثمانية</span>
+        </div>
+        <div class="theme-option theme-option-ananas" data-theme="ananas">
+          <span class="theme-dot" style="background:#FF4D00;"></span>
+          <span>أناناس</span>
+        </div>
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">
+        <div class="user-avatar">م</div>
+        <div class="user-info">
+          <span class="user-name">محمد الأحمد</span>
+          <span class="user-role">محلل رياضي</span>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <main class="main-content">
+    <header class="top-bar">
+      <button class="menu-toggle" id="menuToggle" aria-label="القائمة">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <div class="top-bar-content">
+        <h1 class="page-title" id="pageTitle">الرئيسية</h1>
+        <div class="top-bar-actions" id="topBarActions" style="display:none;">
+          <button class="btn btn-secondary btn-sm" id="exportExcelBtn" onclick="exportExcel()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg>
+            <span>تصدير Excel</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" id="exportPdfBtn" onclick="exportPDF()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            <span>تصدير PDF</span>
+          </button>
+          <button class="btn btn-primary btn-sm" onclick="startNewAnalysis()">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            <span>تحليل جديد</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- ═══════════ VIEW: HOME / DASHBOARD ═══════════ -->
+    <div class="view view-home view-active">
+      <div class="content-scroll">
+        <div class="dashboard-container">
+
+          <!-- Welcome Hero -->
+          <div class="dash-welcome">
+            <div class="dash-welcome-text">
+              <h2 class="dash-welcome-title">مرحبًا، محمد</h2>
+              <p class="dash-welcome-desc">مرحبًا بك في أداة تحليل المعلقين الرياضيين. ارفع تسجيلًا صوتيًا وسيقوم الذكاء الاصطناعي بتحليل الأداء التعليقي وفق 32 معيارًا مهنيًا عالميًا.</p>
+              <div class="dash-welcome-actions">
+                <button class="btn btn-accent" onclick="navigateTo('upload')">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  بدء تحليل جديد
+                </button>
+                <a href="dummy.html" class="btn btn-secondary">عرض التقرير التجريبي</a>
+              </div>
+            </div>
+            <div class="dash-welcome-visual">
+              <svg viewBox="0 0 200 200" fill="none">
+                <circle cx="100" cy="100" r="90" stroke="#EFEDE2" stroke-width="4"/>
+                <circle cx="100" cy="100" r="90" stroke="#00C17A" stroke-width="4" stroke-linecap="round" stroke-dasharray="565.48" stroke-dashoffset="141.37" transform="rotate(-90 100 100)" opacity="0.3"/>
+                <circle cx="100" cy="100" r="60" stroke="#EFEDE2" stroke-width="3"/>
+                <circle cx="100" cy="100" r="60" stroke="#00C17A" stroke-width="3" stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="94.25" transform="rotate(-90 100 100)" opacity="0.5"/>
+                <text x="100" y="95" text-anchor="middle" font-size="36" font-weight="900" fill="#000" font-family="var(--font-display)">32</text>
+                <text x="100" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#777" font-family="var(--font-ui)">معيار تقييم</text>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Quick Stats Row -->
+          <div class="dash-stats-row">
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="background:rgba(0,193,122,0.1);color:#00C17A;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              </div>
+              <div class="dash-stat-info">
+                <span class="dash-stat-value">3</span>
+                <span class="dash-stat-label">تقارير مكتملة</span>
+              </div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="background:rgba(0,114,249,0.1);color:#0072F9;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              </div>
+              <div class="dash-stat-info">
+                <span class="dash-stat-value">4.2</span>
+                <span class="dash-stat-label">ساعات تحليل</span>
+              </div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="background:rgba(255,188,10,0.15);color:#FFBC0A;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              </div>
+              <div class="dash-stat-info">
+                <span class="dash-stat-value">2</span>
+                <span class="dash-stat-label">معلقين</span>
+              </div>
+            </div>
+            <div class="dash-stat-card">
+              <div class="dash-stat-icon" style="background:rgba(0,193,122,0.1);color:#00C17A;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+              </div>
+              <div class="dash-stat-info">
+                <span class="dash-stat-value">78.3</span>
+                <span class="dash-stat-label">متوسط التقييم</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Reports -->
+          <div class="dash-section">
+            <div class="dash-section-header">
+              <h3 class="dash-section-title">التقارير الأخيرة</h3>
+              <button class="btn btn-secondary btn-sm" onclick="navigateTo('reports')">عرض الكل</button>
+            </div>
+            <div class="dash-reports-list" id="dashRecentReports"></div>
+          </div>
+
+          <!-- How It Works -->
+          <div class="dash-section">
+            <h3 class="dash-section-title">كيف تعمل الأداة</h3>
+            <div class="dash-steps-grid">
+              <div class="dash-step-card">
+                <div class="dash-step-num">1</div>
+                <h4 class="dash-step-title">ارفع التسجيل</h4>
+                <p class="dash-step-desc">ارفع الملف الصوتي لتعليق المباراة بأي صيغة مدعومة (MP3, WAV, M4A, وغيرها)</p>
+              </div>
+              <div class="dash-step-card">
+                <div class="dash-step-num">2</div>
+                <h4 class="dash-step-title">تحليل بالذكاء الاصطناعي</h4>
+                <p class="dash-step-desc">يقوم الذكاء الاصطناعي بتحليل الصوت وتقييم الأداء عبر 8 محاور و32 معيارًا</p>
+              </div>
+              <div class="dash-step-card">
+                <div class="dash-step-num">3</div>
+                <h4 class="dash-step-title">استلم التقرير</h4>
+                <p class="dash-step-desc">تقرير تفصيلي شامل مع درجات، تفريغ نصي، اقتباسات مميزة، وإحصائيات أداء</p>
+              </div>
+              <div class="dash-step-card">
+                <div class="dash-step-num">4</div>
+                <h4 class="dash-step-title">صدّر وشارك</h4>
+                <p class="dash-step-desc">صدّر التقرير بصيغة PDF مع الحفاظ الكامل على التصميم لمشاركته مع فريقك</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Highlights -->
+          <div class="dash-section">
+            <h3 class="dash-section-title">ماذا يمكنك فعله</h3>
+            <div class="dash-features-grid">
+              <div class="dash-feature-card">
+                <div class="dash-feature-icon" style="background:rgba(0,193,122,0.1);color:#00C17A;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                </div>
+                <h4>تقييم شامل</h4>
+                <p>8 محاور رئيسية و32 معيارًا فرعيًا تغطي كل جوانب أداء المعلق من الصوت والأسلوب إلى التحليل التكتيكي والإبداع</p>
+              </div>
+              <div class="dash-feature-card">
+                <div class="dash-feature-icon" style="background:rgba(0,114,249,0.1);color:#0072F9;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+                </div>
+                <h4>تفريغ نصي ذكي</h4>
+                <p>تفريغ كامل للتعليق مع التوقيت الزمني الدقيق وتحديد هوية كل متحدث (معلق، محلل، مراسل)</p>
+              </div>
+              <div class="dash-feature-card">
+                <div class="dash-feature-icon" style="background:rgba(255,188,10,0.15);color:#FFBC0A;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <h4>خريطة الحماس</h4>
+                <p>رسم بياني يوضح مستوى الحماس التعليقي عبر دقائق المباراة لتحديد الذروات واللحظات المحورية</p>
+              </div>
+              <div class="dash-feature-card">
+                <div class="dash-feature-icon" style="background:rgba(242,73,53,0.08);color:#F24935;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <h4>تصدير PDF</h4>
+                <p>تصدير التقرير الكامل بصيغة PDF مع الحفاظ على التصميم والألوان والرسومات البيانية بدقة عالية</p>
+              </div>
+              <div class="dash-feature-card">
+                <div class="dash-feature-icon" style="background:rgba(130,0,58,0.08);color:#82003A;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                </div>
+                <h4>اقتباسات مميزة</h4>
+                <p>استخراج تلقائي لأبرز العبارات والاقتباسات المميزة التي قالها المعلق مع توقيتها وسياقها</p>
+              </div>
+              <div class="dash-feature-card">
+                <div class="dash-feature-icon" style="background:rgba(0,193,122,0.1);color:#00C17A;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg>
+                </div>
+                <h4>مقارنة المعلقين</h4>
+                <p>إمكانية مقارنة أداء معلقين مختلفين عبر الإحصائيات المجمعة والرسوم البيانية التفاعلية</p>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <footer class="page-footer">
+          <div class="footer-content">
+            <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+            <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; 2026</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: UPLOAD ═══════════ -->
+    <div class="view view-upload">
+      <div class="content-scroll">
+        <div class="upload-container">
+          <div class="upload-hero">
+            <div class="upload-hero-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            </div>
+            <h2 class="upload-hero-title">تحليل تعليق مباراة جديدة</h2>
+            <p class="upload-hero-desc">ارفع التسجيل الصوتي للتعليق وسيقوم الذكاء الاصطناعي بتحليل الأداء وفق أعلى المعايير المهنية</p>
+          </div>
+
+          <div class="upload-drop-zone" id="dropZone">
+            <div class="drop-zone-content">
+              <div class="drop-zone-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <p class="drop-zone-text">اسحب الملف الصوتي وأفلته هنا</p>
+              <p class="drop-zone-or">أو</p>
+              <button class="btn btn-primary" id="browseBtn">اختر ملفًا من جهازك</button>
+              <input type="file" id="fileInput" accept="audio/*,.wav,.mp3,.ogg,.flac,.m4a,.aac,.aiff" hidden>
+              <p class="drop-zone-formats">الصيغ المدعومة: WAV, MP3, OGG, FLAC, M4A, AAC, AIFF — الحد الأقصى: ٢٠٠ ميغابايت</p>
+            </div>
+          </div>
+
+          <div id="fileInfo" style="display:none;"></div>
+
+          <button class="btn btn-accent btn-lg" id="analyzeBtn" style="display:none;">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            بدء التحليل
+          </button>
+        </div>
+
+        <footer class="page-footer">
+          <div class="footer-content">
+            <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+            <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; ٢٠٢٦</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: LOADING ═══════════ -->
+    <div class="view view-loading">
+      <div class="content-scroll">
+        <div class="loading-container">
+          <div class="loading-visual">
+            <div class="loading-pulse-ring"></div>
+            <div class="loading-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                <line x1="12" y1="19" x2="12" y2="23"/>
+                <line x1="8" y1="23" x2="16" y2="23"/>
+              </svg>
+            </div>
+          </div>
+
+          <div class="loading-timer-display">
+            <span id="loadingTimer">٠:٠٠</span>
+          </div>
+
+          <p class="loading-message" id="loadingMessage">جارٍ تجهيز الملف الصوتي...</p>
+
+          <div class="loading-progress-bar">
+            <div class="loading-progress-fill" id="loadingProgressFill"></div>
+          </div>
+
+          <div class="loading-steps" id="loadingSteps">
+            <div class="loading-step active">
+              <div class="step-dot"></div>
+              <span class="step-label">تجهيز الملف</span>
+            </div>
+            <div class="loading-step">
+              <div class="step-dot"></div>
+              <span class="step-label">الإرسال</span>
+            </div>
+            <div class="loading-step">
+              <div class="step-dot"></div>
+              <span class="step-label">التحليل</span>
+            </div>
+            <div class="loading-step">
+              <div class="step-dot"></div>
+              <span class="step-label">إنشاء التقرير</span>
+            </div>
+          </div>
+
+          <button class="btn btn-secondary" onclick="cancelAnalysis()">إلغاء</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: REPORT ═══════════ -->
+    <div class="view view-report">
+      <div class="content-scroll">
+        <div class="report-content">
+
+          <!-- Match Banner -->
+          <section class="match-banner">
+            <div class="match-banner-inner">
+              <div class="match-teams">
+                <div class="team">
+                  <div class="team-badge team-a" id="rTeamABadge"></div>
+                  <span class="team-name" id="rTeamAName"></span>
+                </div>
+                <div class="match-score-display">
+                  <span class="match-result" id="rMatchScore"></span>
+                  <span class="match-label" id="rMatchLabel"></span>
+                  <span class="match-date" id="rMatchDate"></span>
+                </div>
+                <div class="team">
+                  <div class="team-badge team-b" id="rTeamBBadge"></div>
+                  <span class="team-name" id="rTeamBName"></span>
+                </div>
+              </div>
+              <div class="commentator-info">
+                <div class="commentator-avatar" id="rCommentatorAvatar"></div>
+                <div class="commentator-details">
+                  <span class="commentator-label">المعلق</span>
+                  <span class="commentator-name" id="rCommentatorName"></span>
+                  <span class="commentator-channel" id="rCommentatorChannel"></span>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Video Link -->
+          <section class="video-link-section" id="rVideoSection" style="display:none;">
+            <div class="card video-link-card">
+              <div class="video-link-inner">
+                <div class="video-link-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+                </div>
+                <div class="video-link-info">
+                  <span class="video-link-label">رابط الفيديو — مستورد من Mimir</span>
+                  <a class="video-link-url" id="rVideoUrl" href="#" target="_blank" rel="noopener"></a>
+                </div>
+                <a class="btn btn-primary btn-sm" id="rVideoBtn" href="#" target="_blank" rel="noopener">
+                  <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  مشاهدة
+                </a>
+              </div>
+            </div>
+          </section>
+
+          <!-- Overall Score -->
+          <section class="score-hero">
+            <div class="score-hero-main">
+              <div class="score-ring-container">
+                <svg class="score-ring" viewBox="0 0 160 160">
+                  <circle class="score-ring-bg" cx="80" cy="80" r="70" fill="none" stroke="#EFEDE2" stroke-width="10"/>
+                  <circle class="score-ring-fill" cx="80" cy="80" r="70" fill="none" stroke="#00C17A" stroke-width="10" stroke-linecap="round"
+                    stroke-dasharray="439.82" stroke-dashoffset="439.82" transform="rotate(-90 80 80)"/>
+                </svg>
+                <div class="score-ring-value">
+                  <span class="score-number" id="rOverallScore">٠</span>
+                  <span class="score-max">/ ١٠٠</span>
+                </div>
+              </div>
+              <div class="score-hero-text">
+                <h2 class="score-hero-title">التقييم العام</h2>
+                <p class="score-hero-desc" id="rOverallSummary"></p>
+                <div class="score-tags" id="rOverallTags"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Category Cards (dynamically populated) -->
+          <section class="category-cards" id="rCategoryCards"></section>
+
+          <!-- Performance Statistics -->
+          <section class="stats-section">
+            <div class="card stats-card">
+              <h2 class="card-title">احصائيات الأداء</h2>
+              <div class="stats-grid" id="rPerformanceStats"></div>
+            </div>
+          </section>
+
+          <!-- Detailed Breakdown -->
+          <section class="detail-section">
+            <div class="card detail-card">
+              <div class="card-header">
+                <h2 class="card-title">التحليل التفصيلي</h2>
+                <div class="card-tabs">
+                  <button class="tab active">جميع المعايير</button>
+                  <button class="tab">نقاط القوة</button>
+                  <button class="tab">يحتاج تحسين</button>
+                </div>
+              </div>
+              <div class="criteria-list" id="rCriteriaList"></div>
+            </div>
+          </section>
+
+          <!-- Radar Chart + Excitement Timeline -->
+          <section class="two-col-section">
+            <div class="card radar-card">
+              <h2 class="card-title">مخطط الأداء</h2>
+              <div class="radar-container" id="rRadarChart"></div>
+            </div>
+            <div class="card excitement-card" id="rExcitementSection">
+              <h2 class="card-title">خريطة الحماس</h2>
+              <p class="card-subtitle">مستوى الحماس التعليقي عبر دقائق المباراة</p>
+              <div class="excitement-bars" id="rExcitementBars"></div>
+            </div>
+          </section>
+
+          <!-- Notable Quotes -->
+          <section id="rQuotesSection">
+            <div class="card quotes-card">
+              <h2 class="card-title">اقتباسات مميزة</h2>
+              <div class="quotes-grid" id="rNotableQuotes"></div>
+            </div>
+          </section>
+
+          <!-- Transcription -->
+          <section class="transcription-section" id="rTranscriptionSection" style="display:none;">
+            <div class="card transcription-card">
+              <div class="card-header">
+                <h2 class="card-title">التفريغ النصي الكامل</h2>
+                <button class="btn btn-secondary btn-sm" id="transcriptionToggle" onclick="toggleTranscription()">عرض الكل</button>
+              </div>
+              <div class="transcription-content" id="rTranscriptionContent">
+                <div class="transcription-list" id="rTranscriptionList"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Key Moments + Side Column -->
+          <section class="two-col-section">
+            <div class="card moments-card">
+              <h2 class="card-title">اللحظات المحورية</h2>
+              <div class="moments-list" id="rMomentsList"></div>
+            </div>
+            <div class="side-col">
+              <div class="card strengths-card">
+                <h2 class="card-title">نقاط القوة</h2>
+                <ul class="strengths-list" id="rStrengthsList"></ul>
+              </div>
+              <div class="card improvements-card">
+                <h2 class="card-title">مجالات التحسين</h2>
+                <ul class="improvements-list" id="rImprovementsList"></ul>
+              </div>
+            </div>
+          </section>
+
+          <!-- Footer -->
+          <footer class="page-footer">
+            <div class="footer-content">
+              <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+              <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; ٢٠٢٦</span>
+            </div>
+          </footer>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: REPORTS LIST ═══════════ -->
+    <div class="view view-reports">
+      <div class="content-scroll">
+        <div class="reports-container">
+
+          <div class="reports-header">
+            <div class="reports-header-text">
+              <h2 class="reports-title">جميع التقارير</h2>
+              <p class="reports-subtitle">جميع تقارير تحليل المعلقين السابقة. يمكنك إعادة فتح أي تقرير أو تصديره بصيغة PDF.</p>
+            </div>
+            <button class="btn btn-accent" onclick="navigateTo('upload')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              تحليل جديد
+            </button>
+          </div>
+
+          <!-- Filter Bar -->
+          <div class="reports-filter-bar">
+            <div class="reports-search">
+              <svg class="reports-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="reports-search-input" placeholder="ابحث بالمعلق أو الفريق أو القناة..." id="reportsSearchInput">
+            </div>
+            <div class="reports-filter-group">
+              <select class="reports-select" id="reportsRoleFilter">
+                <option value="all">جميع الأدوار</option>
+                <option value="معلق">معلق</option>
+                <option value="مقدم">مقدم</option>
+                <option value="مراسل">مراسل</option>
+                <option value="محلل">محلل</option>
+              </select>
+              <select class="reports-select" id="reportsScoreFilter">
+                <option value="all">جميع التقييمات</option>
+                <option value="90-100">ممتاز (90-100)</option>
+                <option value="80-89">جيد جدًا (80-89)</option>
+                <option value="70-79">جيد (70-79)</option>
+                <option value="60-69">مقبول (60-69)</option>
+                <option value="0-59">يحتاج تحسين (أقل من 60)</option>
+              </select>
+              <select class="reports-select" id="reportsDateFilter">
+                <option value="all">جميع الفترات</option>
+                <option value="7">آخر أسبوع</option>
+                <option value="30">آخر شهر</option>
+                <option value="90">آخر 3 أشهر</option>
+                <option value="180">آخر 6 أشهر</option>
+              </select>
+              <select class="reports-select" id="reportsSortSelect">
+                <option value="date-desc">الأحدث أولًا</option>
+                <option value="date-asc">الأقدم أولًا</option>
+                <option value="score-desc">الأعلى تقييمًا</option>
+                <option value="score-asc">الأقل تقييمًا</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Bulk Export Bar -->
+          <div class="reports-export-bar">
+            <span class="reports-export-label">تصدير التقارير المعروضة:</span>
+            <button class="btn btn-secondary btn-sm" onclick="exportFilteredReportsPDF()">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              PDF
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="exportFilteredReportsExcel()">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+              Excel
+            </button>
+          </div>
+
+          <!-- Reports Grid -->
+          <div class="reports-grid" id="reportsGrid"></div>
+
+          <!-- Demo Report Link -->
+          <div class="reports-demo-banner">
+            <div class="reports-demo-text">
+              <h4>التقرير التجريبي</h4>
+              <p>شاهد مثالًا كاملًا لتقرير تحليل المعلق فهد العتيبي في مباراة الهلال والنصر مع كل الميزات والرسوم البيانية</p>
+            </div>
+            <a href="dummy.html" class="btn btn-primary btn-sm">عرض التقرير التجريبي</a>
+          </div>
+
+        </div>
+
+        <footer class="page-footer">
+          <div class="footer-content">
+            <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+            <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; 2026</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: STATISTICS ═══════════ -->
+    <div class="view view-statistics">
+      <div class="content-scroll">
+        <div class="stats-page-container">
+
+          <div class="stats-page-header">
+            <h2 class="stats-page-title">الإحصائيات والتحليلات</h2>
+            <p class="stats-page-subtitle">نظرة شاملة على إحصائيات أداء المعلقين المحللين عبر جميع التقارير. يمكنك تتبع التطور واكتشاف الأنماط ومقارنة الأداء.</p>
+          </div>
+
+          <!-- Summary Cards -->
+          <div class="stats-page-summary">
+            <div class="stats-page-sum-card">
+              <span class="stats-page-sum-value" data-count-target="3">0</span>
+              <span class="stats-page-sum-label">تقارير مكتملة</span>
+              <div class="stats-page-sum-trend up">+2 هذا الشهر</div>
+            </div>
+            <div class="stats-page-sum-card">
+              <span class="stats-page-sum-value" data-count-target="78">0</span>
+              <span class="stats-page-sum-label">متوسط التقييم العام</span>
+              <div class="stats-page-sum-trend up">+3.2 عن الشهر السابق</div>
+            </div>
+            <div class="stats-page-sum-card">
+              <span class="stats-page-sum-value" data-count-target="2">0</span>
+              <span class="stats-page-sum-label">معلقين محللين</span>
+              <div class="stats-page-sum-trend neutral">بدون تغيير</div>
+            </div>
+            <div class="stats-page-sum-card">
+              <span class="stats-page-sum-value" data-count-target="85">0</span>
+              <span class="stats-page-sum-label">أعلى تقييم</span>
+              <div class="stats-page-sum-trend up">فهد العتيبي — تغطية الأحداث</div>
+            </div>
+          </div>
+
+          <!-- Average Scores by Category -->
+          <div class="card stats-page-card">
+            <h3 class="card-title">متوسط الدرجات حسب المحور</h3>
+            <p class="stats-page-card-desc">متوسط درجات جميع المعلقين المحللين في كل محور من محاور التقييم الثمانية</p>
+            <div class="stats-page-bars" id="statsCategoryBars"></div>
+          </div>
+
+          <!-- Commentator Comparison -->
+          <div class="stats-page-two-col">
+            <div class="card stats-page-card">
+              <h3 class="card-title">مقارنة المعلقين</h3>
+              <p class="stats-page-card-desc">مقارنة بين متوسط درجات المعلقين المحللين في كل محور</p>
+              <div class="stats-page-comparison" id="statsComparison"></div>
+            </div>
+            <div class="card stats-page-card">
+              <h3 class="card-title">توزيع الدرجات</h3>
+              <p class="stats-page-card-desc">توزيع درجات المعايير الفرعية عبر جميع التقارير</p>
+              <div class="stats-page-distribution" id="statsDistribution"></div>
+            </div>
+          </div>
+
+          <!-- Top Strengths & Areas for Improvement -->
+          <div class="stats-page-two-col">
+            <div class="card stats-page-card">
+              <h3 class="card-title">أبرز نقاط القوة المشتركة</h3>
+              <div class="stats-page-list" id="statsTopStrengths"></div>
+            </div>
+            <div class="card stats-page-card">
+              <h3 class="card-title">أبرز مجالات التحسين المشتركة</h3>
+              <div class="stats-page-list" id="statsTopImprovements"></div>
+            </div>
+          </div>
+
+          <!-- Performance Trends -->
+          <div class="card stats-page-card">
+            <h3 class="card-title">اتجاه الأداء عبر الوقت</h3>
+            <p class="stats-page-card-desc">تطور متوسط التقييم العام عبر التقارير الأخيرة</p>
+            <div class="stats-page-trend-chart" id="statsTrendChart"></div>
+          </div>
+
+          <!-- Interesting Facts -->
+          <div class="card stats-page-card">
+            <h3 class="card-title">حقائق مثيرة</h3>
+            <div class="stats-page-facts" id="statsFacts"></div>
+          </div>
+
+        </div>
+
+        <footer class="page-footer">
+          <div class="footer-content">
+            <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+            <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; 2026</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: SETTINGS ═══════════ -->
+    <div class="view view-settings">
+      <div class="content-scroll">
+        <div class="settings-container">
+
+          <div class="settings-header">
+            <h2 class="settings-title">الإعدادات</h2>
+            <p class="settings-subtitle">تخصيص إعدادات الأداة وتفضيلات التقارير</p>
+          </div>
+
+          <!-- General Settings -->
+          <div class="card settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon" style="background:rgba(0,193,122,0.1);color:#00C17A;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              </div>
+              <div>
+                <h3 class="settings-card-title">إعدادات عامة</h3>
+                <p class="settings-card-desc">إعدادات التحليل العامة</p>
+              </div>
+            </div>
+            <div class="settings-fields">
+              <div class="settings-field">
+                <label class="settings-label">الحد الأقصى لحجم الملف (ميغابايت)</label>
+                <input type="number" class="settings-input settings-input-sm" id="settingsMaxSize" value="200" min="10" max="500">
+                <span class="settings-hint">الحد الأقصى المسموح لحجم الملف الصوتي المرفوع</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Report Settings -->
+          <div class="card settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon" style="background:rgba(0,114,249,0.1);color:#0072F9;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
+              <div>
+                <h3 class="settings-card-title">إعدادات التقارير</h3>
+                <p class="settings-card-desc">تخصيص محتوى التقارير ومظهرها</p>
+              </div>
+            </div>
+            <div class="settings-fields">
+              <div class="settings-field">
+                <label class="settings-label">عدد المحاور الرئيسية</label>
+                <select class="settings-select" id="settingsCategories">
+                  <option value="6">6 محاور (أساسي)</option>
+                  <option value="8" selected>8 محاور (شامل — موصى به)</option>
+                </select>
+                <span class="settings-hint">عدد محاور التقييم الرئيسية في التقرير. النسخة الشاملة تتضمن المعرفة الرياضية والإبداع والتميز</span>
+              </div>
+              <div class="settings-toggles">
+                <div class="settings-toggle-row">
+                  <div class="settings-toggle-info">
+                    <span class="settings-toggle-label">التفريغ النصي</span>
+                    <span class="settings-toggle-desc">تضمين التفريغ الكامل مع التوقيت في التقرير</span>
+                  </div>
+                  <label class="settings-switch"><input type="checkbox" id="settingsTranscription" checked><span class="settings-slider"></span></label>
+                </div>
+                <div class="settings-toggle-row">
+                  <div class="settings-toggle-info">
+                    <span class="settings-toggle-label">خريطة الحماس</span>
+                    <span class="settings-toggle-desc">رسم بياني لمستوى الحماس عبر المباراة</span>
+                  </div>
+                  <label class="settings-switch"><input type="checkbox" id="settingsExcitement" checked><span class="settings-slider"></span></label>
+                </div>
+                <div class="settings-toggle-row">
+                  <div class="settings-toggle-info">
+                    <span class="settings-toggle-label">الاقتباسات المميزة</span>
+                    <span class="settings-toggle-desc">استخراج أبرز عبارات المعلق مع السياق</span>
+                  </div>
+                  <label class="settings-switch"><input type="checkbox" id="settingsQuotes" checked><span class="settings-slider"></span></label>
+                </div>
+                <div class="settings-toggle-row">
+                  <div class="settings-toggle-info">
+                    <span class="settings-toggle-label">إحصائيات الأداء</span>
+                    <span class="settings-toggle-desc">عدد الكلمات، نسبة الصمت، المفردات الفريدة، إلخ</span>
+                  </div>
+                  <label class="settings-switch"><input type="checkbox" id="settingsPerformance" checked><span class="settings-slider"></span></label>
+                </div>
+                <div class="settings-toggle-row">
+                  <div class="settings-toggle-info">
+                    <span class="settings-toggle-label">مخطط الأداء الشعاعي</span>
+                    <span class="settings-toggle-desc">رسم بياني شعاعي يوضح مستوى كل محور</span>
+                  </div>
+                  <label class="settings-switch"><input type="checkbox" id="settingsRadar" checked><span class="settings-slider"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- PDF Export Settings -->
+          <div class="card settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon" style="background:rgba(242,73,53,0.08);color:#F24935;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              </div>
+              <div>
+                <h3 class="settings-card-title">إعدادات التصدير</h3>
+                <p class="settings-card-desc">تخصيص إعدادات تصدير التقرير بصيغة PDF</p>
+              </div>
+            </div>
+            <div class="settings-fields">
+              <div class="settings-field">
+                <label class="settings-label">حجم الصفحة</label>
+                <select class="settings-select" id="settingsPageSize">
+                  <option value="a4" selected>A4 (210 × 297 مم)</option>
+                  <option value="letter">Letter (216 × 279 مم)</option>
+                </select>
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">جودة الصور</label>
+                <select class="settings-select" id="settingsImageQuality">
+                  <option value="0.8">عادية (ملف أصغر)</option>
+                  <option value="0.95" selected>عالية (موصى به)</option>
+                  <option value="1">قصوى (ملف أكبر)</option>
+                </select>
+              </div>
+              <div class="settings-toggles">
+                <div class="settings-toggle-row">
+                  <div class="settings-toggle-info">
+                    <span class="settings-toggle-label">تضمين التفريغ النصي في PDF</span>
+                    <span class="settings-toggle-desc">تضمين النص الكامل للتفريغ (يزيد عدد الصفحات)</span>
+                  </div>
+                  <label class="settings-switch"><input type="checkbox" id="settingsPdfTranscription"><span class="settings-slider"></span></label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- User Profile -->
+          <div class="card settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon" style="background:rgba(255,188,10,0.15);color:#FFBC0A;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </div>
+              <div>
+                <h3 class="settings-card-title">الملف الشخصي</h3>
+                <p class="settings-card-desc">معلوماتك الشخصية التي تظهر في الشريط الجانبي</p>
+              </div>
+            </div>
+            <div class="settings-fields">
+              <div class="settings-field">
+                <label class="settings-label">الاسم</label>
+                <input type="text" class="settings-input" id="settingsUserName" value="محمد الأحمد">
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">الدور الوظيفي</label>
+                <input type="text" class="settings-input" id="settingsUserRole" value="محلل رياضي">
+              </div>
+            </div>
+          </div>
+
+          <!-- About Section -->
+          <div class="card settings-card settings-about">
+            <div class="settings-about-logo">
+              <img src="Usable/thamanyah.png" alt="ثمانية" class="settings-about-img">
+            </div>
+            <h3 class="settings-about-title">أداة تحليل المعلقين</h3>
+            <p class="settings-about-version">الإصدار 1.0.0</p>
+            <p class="settings-about-desc">أداة متقدمة لتحليل وتقييم أداء المعلقين الرياضيين باستخدام الذكاء الاصطناعي. مبنية بواسطة فريق ثمانية.</p>
+            <div class="settings-about-tech">
+              <span class="tag tag-green">ذكاء اصطناعي</span>
+              <span class="tag tag-blue">تحليل صوتي</span>
+              <span class="tag tag-amber">تصدير PDF</span>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div class="settings-actions">
+            <button class="btn btn-accent btn-lg" id="saveSettingsBtn" onclick="saveSettings()">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              حفظ الإعدادات
+            </button>
+            <button class="btn btn-secondary btn-lg" onclick="resetSettings()">إعادة تعيين</button>
+          </div>
+
+        </div>
+
+        <footer class="page-footer">
+          <div class="footer-content">
+            <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+            <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; 2026</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: STARS (النجوم) ═══════════ -->
+    <div class="view view-stars">
+      <div class="content-scroll">
+        <div class="stars-container">
+
+          <div class="stars-header">
+            <div class="stars-header-text">
+              <h2 class="stars-title">تقارير النجوم</h2>
+              <p class="stars-subtitle">تقرير شامل لأداء كل نجم خلال آخر 3 أشهر مع مسار التطور الزمني. البيانات مستوردة من Mimir.</p>
+            </div>
+            <div class="stars-header-actions">
+              <button class="btn btn-secondary btn-sm" onclick="exportStarsExcel()">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                تصدير Excel
+              </button>
+              <button class="btn btn-secondary btn-sm" onclick="exportStarsPDF()">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                تصدير PDF
+              </button>
+            </div>
+          </div>
+
+          <!-- Star Filter Bar -->
+          <div class="reports-filter-bar">
+            <div class="reports-search">
+              <svg class="reports-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" class="reports-search-input" placeholder="ابحث بالاسم..." id="starsSearchInput">
+            </div>
+            <div class="reports-filter-group">
+              <select class="reports-select" id="starsRoleFilter">
+                <option value="all">جميع الأدوار</option>
+                <option value="معلق">معلق</option>
+                <option value="مقدم">مقدم</option>
+                <option value="مراسل">مراسل</option>
+                <option value="محلل">محلل</option>
+              </select>
+              <select class="reports-select" id="starsTrendFilter">
+                <option value="all">جميع الاتجاهات</option>
+                <option value="improving">يتحسن</option>
+                <option value="stable">مستقر</option>
+                <option value="declining">يتراجع</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Stars Grid -->
+          <div class="stars-grid" id="starsGrid"></div>
+
+        </div>
+        <footer class="page-footer">
+          <div class="footer-content">
+            <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+            <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; 2026</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: CRITERIA (المعايير) ═══════════ -->
+    <div class="view view-criteria">
+      <div class="content-scroll">
+        <div class="criteria-page-container">
+
+          <div class="criteria-page-header">
+            <h2 class="criteria-page-title">معايير التقييم</h2>
+            <p class="criteria-page-subtitle">معايير التقييم الموحدة لكل دور — معلقين، مقدمين، مراسلين، ومحللين. كل دور له معايير مخصصة بحسب طبيعة العمل.</p>
+          </div>
+
+          <!-- Listening Tool Integration Banner -->
+          <div class="listening-tool-banner">
+            <div class="listening-banner-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/></svg>
+            </div>
+            <div class="listening-banner-text">
+              <h4>ربط بأداة الاستماع — Mimir</h4>
+              <p>قيد التطوير: سيتم ربط المعايير بأداة الاستماع الآلية من Mimir بنسبة 100% لتقييم تلقائي بدون تدخل بشري.</p>
+              <span class="tag tag-amber">قيد التطوير</span>
+            </div>
+          </div>
+
+          <!-- Role Tabs -->
+          <div class="criteria-role-tabs">
+            <button class="criteria-role-tab active" onclick="switchCriteriaRole('commentator')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/></svg>
+              معلق
+            </button>
+            <button class="criteria-role-tab" onclick="switchCriteriaRole('presenter')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="15" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
+              مقدم
+            </button>
+            <button class="criteria-role-tab" onclick="switchCriteriaRole('reporter')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              مراسل
+            </button>
+            <button class="criteria-role-tab" onclick="switchCriteriaRole('analyst')">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              محلل
+            </button>
+          </div>
+
+          <!-- Criteria Content (populated by JS) -->
+          <div id="criteriaRoleContent"></div>
+
+        </div>
+        <footer class="page-footer">
+          <div class="footer-content">
+            <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+            <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; 2026</span>
+          </div>
+        </footer>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════ TOAST NOTIFICATION ═══════════ -->
+  <div class="toast" id="toast">
+    <div class="toast-content">
+      <svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+      <span class="toast-message" id="toastMessage"></span>
+    </div>
+  </div>
+
+  <!-- ═══════════ ERROR MODAL ═══════════ -->
+  <div class="error-modal" id="errorModal">
+    <div class="error-modal-content">
+      <div class="error-modal-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+      </div>
+      <h3 class="error-modal-title" id="errorTitle">خطأ</h3>
+      <p class="error-modal-message" id="errorMessage"></p>
+      <button class="btn btn-primary" id="errorClose">حسنًا</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

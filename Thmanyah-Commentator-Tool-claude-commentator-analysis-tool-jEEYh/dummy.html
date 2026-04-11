@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تقرير تجريبي — أداة تحليل المعلقين — ثمانية</title>
+  <link rel="icon" type="image/png" href="Usable/thamanyah.png">
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    /* Dummy page overrides — no sidebar, full width */
+    body { display: block; }
+    .dummy-topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(247,244,238,0.88);
+      backdrop-filter: blur(12px);
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--color-warm-gray);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .dummy-topbar-right { display: flex; align-items: center; gap: 12px; }
+    .dummy-topbar-right img { width: 32px; height: 32px; }
+    .dummy-topbar-right span { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+    .dummy-badge {
+      background: var(--color-amber); color: #fff; font-size: 11px; font-weight: 700;
+      padding: 3px 10px; border-radius: var(--radius-full);
+    }
+    .dummy-scroll {
+      max-width: 1100px; margin: 0 auto;
+      padding: 32px; display: flex; flex-direction: column; gap: 24px;
+    }
+    @media (max-width: 768px) { .dummy-scroll { padding: 16px; gap: 16px; } }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <header class="dummy-topbar">
+    <div class="dummy-topbar-right">
+      <img src="Usable/thamanyah.png" alt="ثمانية">
+      <span>تقرير تحليل الأداء</span>
+      <span class="dummy-badge">تقرير تجريبي</span>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <a href="index.html" class="btn btn-secondary btn-sm">العودة للأداة</a>
+    </div>
+  </header>
+
+  <div class="dummy-scroll">
+
+    <!-- ═══ MATCH BANNER ═══ -->
+    <section class="match-banner reveal">
+      <div class="match-banner-inner">
+        <div class="match-teams">
+          <div class="team">
+            <div class="team-badge team-b">HI</div>
+            <span class="team-name">الهلال</span>
+          </div>
+          <div class="match-score-display">
+            <span class="match-result">3 - 2</span>
+            <span class="match-label">دوري روشن السعودي — الجولة 22</span>
+            <span class="match-date">8 فبراير 2026</span>
+          </div>
+          <div class="team">
+            <div class="team-badge" style="background:linear-gradient(135deg,#FFDD56,#FFBC0A);color:#333;">NS</div>
+            <span class="team-name">النصر</span>
+          </div>
+        </div>
+        <div class="commentator-info">
+          <div class="commentator-avatar">ف</div>
+          <div class="commentator-details">
+            <span class="commentator-label">المعلق</span>
+            <span class="commentator-name">فهد العتيبي</span>
+            <span class="commentator-channel">SSC HD — البث المباشر</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ OVERALL SCORE ═══ -->
+    <section class="score-hero reveal">
+      <div class="score-hero-main">
+        <div class="score-ring-container">
+          <svg class="score-ring" viewBox="0 0 160 160">
+            <circle class="score-ring-bg" cx="80" cy="80" r="70" fill="none" stroke="#EFEDE2" stroke-width="10"/>
+            <circle class="score-ring-fill" cx="80" cy="80" r="70" fill="none" stroke="#FFBC0A" stroke-width="10" stroke-linecap="round"
+              stroke-dasharray="439.82" stroke-dashoffset="439.82" transform="rotate(-90 80 80)"/>
+          </svg>
+          <div class="score-ring-value">
+            <span class="score-number" data-target="79">0</span>
+            <span class="score-max">/ 100</span>
+          </div>
+        </div>
+        <div class="score-hero-text">
+          <h2 class="score-hero-title">التقييم العام</h2>
+          <p class="score-hero-desc">أداء <span class="highlight highlight-green">جيد جدًا</span> مع تميّز واضح في تغطية الأحداث والأداء الصوتي. لوحظ ميل عاطفي نحو الفريق المضيف يحتاج ضبطًا، كما أن التحليل التكتيكي يمكن تعميقه بشكل أكبر. المعلق يملك أسلوبًا شخصيًا مميزًا وقدرة جيدة على بناء الإثارة.</p>
+          <div class="score-tags">
+            <span class="tag tag-green">تغطية الأحداث متميزة</span>
+            <span class="tag tag-green">صوت واضح وحيوي</span>
+            <span class="tag tag-amber">التحليل التكتيكي يحتاج تعميق</span>
+            <span class="tag tag-blue">أسلوب تعليق فريد</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ CATEGORY CARDS — 8 categories ═══ -->
+    <section class="category-cards" id="catCards">
+      <!-- JS will generate these -->
+    </section>
+
+    <!-- ═══ PERFORMANCE STATS ═══ -->
+    <section class="stats-section reveal">
+      <div class="card stats-card">
+        <h2 class="card-title">احصائيات الأداء</h2>
+        <div class="stats-grid" id="statsGrid"></div>
+      </div>
+    </section>
+
+    <!-- ═══ DETAILED BREAKDOWN ═══ -->
+    <section class="detail-section reveal">
+      <div class="card detail-card">
+        <div class="card-header">
+          <h2 class="card-title">التحليل التفصيلي</h2>
+          <div class="card-tabs">
+            <button class="tab active" onclick="filterTab(this,'all')">جميع المعايير</button>
+            <button class="tab" onclick="filterTab(this,'strengths')">نقاط القوة</button>
+            <button class="tab" onclick="filterTab(this,'improve')">يحتاج تحسين</button>
+          </div>
+        </div>
+        <div class="criteria-list" id="criteriaList"></div>
+      </div>
+    </section>
+
+    <!-- ═══ RADAR + EXCITEMENT ═══ -->
+    <section class="two-col-section reveal">
+      <div class="card radar-card">
+        <h2 class="card-title">مخطط الأداء</h2>
+        <div class="radar-container" id="radarChart"></div>
+      </div>
+      <div class="card excitement-card">
+        <h2 class="card-title">خريطة الحماس</h2>
+        <p class="card-subtitle">مستوى الحماس التعليقي عبر دقائق المباراة</p>
+        <div class="excitement-bars" id="excitementBars"></div>
+      </div>
+    </section>
+
+    <!-- ═══ NOTABLE QUOTES ═══ -->
+    <section class="reveal">
+      <div class="card quotes-card">
+        <h2 class="card-title">اقتباسات مميزة</h2>
+        <div class="quotes-grid" id="quotesGrid"></div>
+      </div>
+    </section>
+
+    <!-- ═══ KEY MOMENTS + STRENGTHS ═══ -->
+    <section class="two-col-section reveal">
+      <div class="card moments-card">
+        <h2 class="card-title">اللحظات المحورية</h2>
+        <div class="moments-list" id="momentsList"></div>
+      </div>
+      <div class="side-col">
+        <div class="card strengths-card">
+          <h2 class="card-title">نقاط القوة</h2>
+          <ul class="strengths-list" id="strengthsList"></ul>
+        </div>
+        <div class="card improvements-card">
+          <h2 class="card-title">مجالات التحسين</h2>
+          <ul class="improvements-list" id="improvementsList"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ TRANSCRIPTION ═══ -->
+    <section class="transcription-section reveal">
+      <div class="card transcription-card">
+        <div class="card-header">
+          <h2 class="card-title">التفريغ النصي الكامل</h2>
+          <button class="btn btn-secondary btn-sm" id="transcriptionToggle" onclick="toggleTranscript()">عرض الكل</button>
+        </div>
+        <div class="transcription-content" id="transcriptContent">
+          <div class="transcription-list" id="transcriptList"></div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <div class="footer-content">
+        <img src="Usable/thamanyah.png" alt="ثمانية" class="footer-logo">
+        <span class="footer-text">أداة تحليل المعلقين — ثمانية &copy; 2026 — تقرير تجريبي</span>
+      </div>
+    </footer>
+  </div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// DUMMY DATA
+// ═══════════════════════════════════════════════════════════════
+const DATA = {
+  categories: [
+    { name: "الأداء الصوتي", score: 85, rating: "جيد جدًا", criteria: [
+      { name: "وضوح النطق والإلقاء", score: 90, note: "صوت واضح طوال المباراة، نطق دقيق لأسماء اللاعبين الأجانب والعرب" },
+      { name: "التنوع في طبقات الصوت", score: 86, note: "تنويع جيد بين الحماس والهدوء مع ذروات صوتية مناسبة عند الأهداف" },
+      { name: "إيقاع وسرعة الكلام", score: 82, note: "إيقاع مناسب غالبًا مع تسارع ملحوظ في الدقائق الأخيرة" },
+      { name: "إدارة فترات الصمت", score: 80, note: "يميل أحيانًا للحديث المستمر دون إتاحة صوت الملعب" }
+    ]},
+    { name: "اللغة والأسلوب", score: 82, rating: "جيد جدًا", criteria: [
+      { name: "سلامة اللغة العربية", score: 85, note: "التزام جيد بالفصحى مع 3 أخطاء نحوية طفيفة" },
+      { name: "ثراء المفردات", score: 84, note: "مفردات متنوعة مع تكرار بعض التعبيرات في الشوط الثاني" },
+      { name: "البلاغة والتعبيرات", score: 80, note: "تشبيهات موفقة أحيانًا لكنها ليست كثيرة" },
+      { name: "الأسلوب السردي", score: 78, note: "قدرة مقبولة على ربط الأحداث لكن السرد يفتقر للعمق أحيانًا" }
+    ]},
+    { name: "التحليل التكتيكي", score: 71, rating: "جيد", criteria: [
+      { name: "قراءة التشكيلات والخطط", score: 74, note: "ذكر التشكيلة الأساسية لكن أغفل تعديل الخطة بعد التبديلات" },
+      { name: "تفسير القرارات التكتيكية", score: 68, note: "تحليل سطحي لسبب التبديلات، اعتمد على الوصف أكثر من التفسير" },
+      { name: "دقة المعلومات والإحصائيات", score: 75, note: "معلومات صحيحة عمومًا مع خطأين إحصائيين أحدهما صُحّح" },
+      { name: "الإعداد والتحضير المسبق", score: 70, note: "تحضير أساسي للمعلومات لكن نقص واضح في خلفيات بعض اللاعبين الجدد" }
+    ]},
+    { name: "تغطية الأحداث", score: 88, rating: "ممتاز", criteria: [
+      { name: "وصف اللعب لحظة بلحظة", score: 92, note: "متابعة ممتازة للكرة مع وصف تفصيلي وحيوي لتحركات اللاعبين" },
+      { name: "تعليق الأهداف واللحظات الحاسمة", score: 91, note: "ردود فعل حماسية مميزة على الأهداف الخمسة مع وصف دقيق" },
+      { name: "التزامن مع الصورة", score: 85, note: "تناغم جيد بين التعليق والأحداث على الشاشة" },
+      { name: "تغطية الإعادات", score: 83, note: "استغلال فعّال للإعادات مع إضافة تفاصيل جديدة عند كل إعادة" }
+    ]},
+    { name: "التوازن العاطفي", score: 65, rating: "مقبول", criteria: [
+      { name: "الحياد وعدم الانحياز", score: 58, note: "انحياز واضح للهلال مع حماس أكبر بشكل ملحوظ عند أهدافهم" },
+      { name: "التعامل مع قرارات الحكم", score: 62, note: "تعليقات اعتراضية متكررة على قرارات ضد الهلال بنبرة غير محايدة" },
+      { name: "إدارة الانفعالات", score: 70, note: "حماس مبالغ فيه في بعض المواقف العادية للهلال" },
+      { name: "الاحترافية في المواقف الصعبة", score: 72, note: "تعامل مقبول مع حالة الإصابة لكن مع تحيز في وصف الاحتكاكات" }
+    ]},
+    { name: "التفاعل مع المشاهد", score: 83, rating: "جيد جدًا", criteria: [
+      { name: "بناء الإثارة والتشويق", score: 88, note: "قدرة عالية على رفع حماس المشاهد خاصة في الهجمات المرتدة" },
+      { name: "إضافة قيمة معرفية", score: 82, note: "معلومات مفيدة عن سجلات اللاعبين ونتائج المواجهات السابقة" },
+      { name: "التواصل مع المحلل", score: 78, note: "حوار جيد مع المحلل لكن مع مقاطعات في بعض التحليلات" },
+      { name: "الخاتمة والتلخيص", score: 84, note: "تلخيص شامل ومرتب لأحداث المباراة مع ذكر الأرقام الرئيسية" }
+    ]},
+    { name: "المعرفة الرياضية", score: 77, rating: "جيد", criteria: [
+      { name: "معرفة تاريخ اللاعبين", score: 80, note: "معلومات جيدة عن اللاعبين الأساسيين لكن معرفة محدودة بالبدلاء" },
+      { name: "الإلمام بسياق البطولة", score: 82, note: "ربط جيد بين نتيجة المباراة وترتيب الدوري والمنافسة على اللقب" },
+      { name: "المراجع التاريخية والمقارنات", score: 73, note: "مقارنات محدودة مع مباريات سابقة بين الفريقين" },
+      { name: "معرفة القوانين واللوائح", score: 74, note: "فهم أساسي لقوانين اللعبة مع خطأ في تفسير قاعدة التسلل" }
+    ]},
+    { name: "الإبداع والتميز", score: 80, rating: "جيد جدًا", criteria: [
+      { name: "أسلوب تعليق فريد", score: 84, note: "أسلوب مميز يمزج بين الحماس والحكاية، يتميز بطريقة خاصة في وصف الأهداف" },
+      { name: "عبارات وتعبيرات لا تُنسى", score: 82, note: "عبارتان مؤثرتان على الأقل ستبقيان في الذاكرة" },
+      { name: "القدرة على السرد القصصي", score: 78, note: "محاولات جيدة لبناء قصة المباراة مع غياب الربط الدرامي أحيانًا" },
+      { name: "اتساق الهوية الشخصية", score: 76, note: "أسلوب شبه ثابت لكن يتأثر بالانحياز العاطفي في بعض الأحيان" }
+    ]}
+  ],
+  stats: {
+    words_per_minute: 148, total_words: 13290, silence_percentage: 15,
+    unique_vocabulary: 1187, repetition_rate: 8.4, factual_errors: 2,
+    analyst_interactions: 18, peak_excitement_count: 12
+  },
+  excitement: [55, 62, 48, 72, 88, 65, 52, 70, 78, 92, 60, 45, 68, 82, 95, 75, 88, 70],
+  quotes: [
+    { time: "23'", text: "الكرة تسبح في الهواء كأنها تبحث عن شبكة المرمى... وجدتها! هدف!!", context: "الهدف الأول للهلال" },
+    { time: "45+2'", text: "في كرة القدم لا يوجد شيء اسمه مباراة محسومة، والنصر يذكّرنا بذلك الآن", context: "هدف تعادل النصر قبل نهاية الشوط" },
+    { time: "67'", text: "هذه ليست مباراة، هذا فيلم سينمائي من إنتاج دوري روشن!", context: "بعد الهدف الرابع" },
+    { time: "89'", text: "الحارس يتحدى الزمن والمهاجم والقدر... وينجح! يا لها من لحظة!", context: "تصدي حاسم في الدقائق الأخيرة" }
+  ],
+  moments: [
+    { time: "8'", type: "excellent", desc: "افتتاحية مميزة للمباراة مع تقديم شامل للتشكيلتين وأجواء الملعب" },
+    { time: "23'", type: "excellent", desc: "تعليق استثنائي على الهدف الأول مع بناء تصاعدي رائع للإثارة" },
+    { time: "31'", type: "note", desc: "خلط بين اسمي لاعبين في خط الوسط تم تصحيحه بعد 20 ثانية" },
+    { time: "45+2'", type: "excellent", desc: "تعليق بليغ على هدف التعادل المفاجئ مع عبارة ستبقى في الذاكرة" },
+    { time: "55'", type: "needs_improvement", desc: "انحياز واضح بعد قرار الحكم بعدم احتساب ضربة جزاء للهلال" },
+    { time: "62'", type: "note", desc: "خطأ في ذكر عدد أهداف أحد اللاعبين هذا الموسم" },
+    { time: "67'", type: "excellent", desc: "وصف سينمائي مذهل للهدف الرابع في المباراة" },
+    { time: "78'", type: "excellent", desc: "بناء إثارة تصاعدية ممتازة في الدقائق الأخيرة من المباراة" },
+    { time: "89'", type: "excellent", desc: "تعليق حماسي استثنائي على التصدي الحاسم لحارس الهلال" },
+    { time: "90+3'", type: "note", desc: "تكرار مفرط لعبارة 'مباراة تاريخية' في الدقائق الأخيرة" }
+  ],
+  strengths: [
+    "تغطية لحظية ممتازة مع وصف حيوي ودقيق لتحركات الكرة واللاعبين",
+    "ردود فعل حماسية مميزة ومتناسبة على الأهداف تصنع لحظات لا تُنسى",
+    "صوت واضح وقوي مع قدرة عالية على التنويع بين طبقات مختلفة",
+    "أسلوب تعليق فريد ومميز يمزج الحماس بالسرد القصصي",
+    "تلخيص شامل ومنظم لأحداث المباراة في الخاتمة"
+  ],
+  improvements: [
+    "ضبط الحياد العاطفي وتجنب الانحياز الواضح لأحد الفريقين خاصة في القرارات التحكيمية",
+    "تعميق التحليل التكتيكي وتفسير قرارات المدربين بشكل أكثر احترافية",
+    "التحضير الأفضل لخلفيات اللاعبين البدلاء والجدد في الفريقين",
+    "تجنب التكرار المفرط للعبارات خاصة في الدقائق الأخيرة من المباراة"
+  ],
+  transcription: [
+    { time: "00:00", speaker: "المعلق", text: "بسم الله الرحمن الرحيم، مشاهدينا الكرام أهلًا بكم في نقل مباشر لقمة الجولة الثانية والعشرين من دوري روشن السعودي" },
+    { time: "00:15", speaker: "المعلق", text: "الهلال يستضيف النصر في ديربي الرياض على أرضية استاد الأمير فيصل بن فهد" },
+    { time: "00:32", speaker: "المحلل", text: "مباراة مهمة جدًا في صراع المقدمة، الفارق نقطتان فقط بين الفريقين" },
+    { time: "00:48", speaker: "المعلق", text: "الهلال يبدأ بتشكيلة 4-3-3 بقيادة المدرب جيسوس، والنصر يعتمد تشكيلة 4-2-3-1" },
+    { time: "01:20", speaker: "المعلق", text: "صافرة البداية! الكرة تتدحرج الآن في ديربي الرياض المنتظر" },
+    { time: "05:30", speaker: "المعلق", text: "استحواذ هلالي واضح في الدقائق الأولى، ضغط عالٍ على مدافعي النصر" },
+    { time: "08:15", speaker: "المحلل", text: "لاحظ كيف يستخدم الهلال الأطراف لتمرير الكرة، الجناح الأيمن نشيط جدًا" },
+    { time: "12:40", speaker: "المعلق", text: "هجمة مرتدة خطيرة للنصر! تمريرة طويلة... لكن الدفاع يتصدى في اللحظة الأخيرة" },
+    { time: "22:50", speaker: "المعلق", text: "تمريرة عرضية من اليسار... رأسية! الكرة تسبح في الهواء كأنها تبحث عن شبكة المرمى... وجدتها! هدف!!" },
+    { time: "23:30", speaker: "المحلل", text: "هدف رائع، الرأسية كانت مثالية والتمريرة العرضية دقيقة جدًا" },
+    { time: "35:00", speaker: "المعلق", text: "النصر يحاول الرد سريعًا، ضغط متواصل على منطقة الهلال" },
+    { time: "44:30", speaker: "المعلق", text: "الحكم يحتسب وقتًا بدل ضائع دقيقتين" },
+    { time: "45:10", speaker: "المعلق", text: "في كرة القدم لا يوجد شيء اسمه مباراة محسومة... هدف! هدف للنصر! التعادل!" }
+  ]
+};
+
+// ═══════════════════════════════════════════════════════════════
+// RENDER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════
+const ICONS = {
+  'الأداء الصوتي': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>',
+  'اللغة والأسلوب': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  'التحليل التكتيكي': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  'تغطية الأحداث': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>',
+  'التوازن العاطفي': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+  'التفاعل مع المشاهد': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  'المعرفة الرياضية': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  'الإبداع والتميز': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>'
+};
+
+function color(s) { return s >= 85 ? '#00C17A' : s >= 70 ? '#FFBC0A' : s >= 50 ? '#FF9172' : '#F24935'; }
+function scoreClass(s) { return s >= 85 ? 'score-excellent' : s >= 70 ? 'score-good' : s >= 50 ? 'score-average' : 'score-below-avg'; }
+
+function renderCards() {
+  const el = document.getElementById('catCards');
+  el.innerHTML = DATA.categories.map((c, i) => `
+    <div class="card score-card reveal" style="transition-delay:${i*0.06}s">
+      <div class="score-card-header">
+        <div class="score-card-icon" style="background:${color(c.score)}12;color:${color(c.score)}">${ICONS[c.name]||''}</div>
+        <div class="score-card-value">
+          <span class="score-card-number" data-target="${c.score}">0</span>
+          <span class="score-card-rating">${c.rating}</span>
+        </div>
+      </div>
+      <h3 class="score-card-title">${c.name}</h3>
+      <p class="score-card-desc">${c.criteria.slice(0,2).map(x=>x.name).join('، ')}</p>
+      <div class="mini-bar"><div class="mini-bar-fill" style="width:${c.score}%;background:${color(c.score)}"></div></div>
+    </div>
+  `).join('');
+}
+
+function renderStats() {
+  const s = DATA.stats;
+  const items = [
+    { v: s.words_per_minute, l: 'كلمة / دقيقة' },
+    { v: s.total_words.toLocaleString(), l: 'إجمالي الكلمات' },
+    { v: s.silence_percentage + '%', l: 'نسبة الصمت' },
+    { v: s.unique_vocabulary.toLocaleString(), l: 'مفردات فريدة' },
+    { v: s.repetition_rate + '%', l: 'نسبة التكرار' },
+    { v: s.factual_errors, l: 'أخطاء معلوماتية' },
+    { v: s.analyst_interactions, l: 'تفاعل مع المحلل' },
+    { v: s.peak_excitement_count, l: 'لحظات ذروة' },
+  ];
+  document.getElementById('statsGrid').innerHTML = items.map(i => `
+    <div class="stat-card"><span class="stat-value">${i.v}</span><span class="stat-label">${i.l}</span></div>
+  `).join('');
+}
+
+function renderCriteria() {
+  const el = document.getElementById('criteriaList');
+  el.innerHTML = DATA.categories.map(cat => `
+    <div class="criteria-group">
+      <h3 class="criteria-group-title"><span class="criteria-dot" style="background:${color(cat.score)}"></span>${cat.name}</h3>
+      ${cat.criteria.map(cr => `
+        <div class="criteria-item" data-score="${cr.score}">
+          <div class="criteria-info">
+            <span class="criteria-name">${cr.name}</span>
+            <span class="criteria-score ${scoreClass(cr.score)}">${cr.score}</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" style="width:${cr.score}%;background:${color(cr.score)}"></div></div>
+          <p class="criteria-note">${cr.note}</p>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+function renderRadar() {
+  const cats = DATA.categories, n = cats.length;
+  const cx = 150, cy = 150, maxR = 120, step = (2*Math.PI)/n;
+  let grid = '', axes = '', dots = '', labels = '';
+  [0.25,0.5,0.75,1].forEach(s => {
+    let pts = [];
+    for (let i=0;i<n;i++) { const a=step*i-Math.PI/2; pts.push(`${cx+maxR*s*Math.cos(a)},${cy+maxR*s*Math.sin(a)}`); }
+    grid += `<polygon points="${pts.join(' ')}" fill="none" stroke="#EFEDE2" stroke-width="1"/>`;
+  });
+  let dataPts = [];
+  for (let i=0;i<n;i++) {
+    const a=step*i-Math.PI/2, r=maxR*(cats[i].score/100);
+    dataPts.push(`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`);
+    axes += `<line x1="${cx}" y1="${cy}" x2="${cx+maxR*Math.cos(a)}" y2="${cy+maxR*Math.sin(a)}" stroke="#EFEDE2"/>`;
+    dots += `<circle cx="${cx+r*Math.cos(a)}" cy="${cy+r*Math.sin(a)}" r="4" fill="#00C17A"/>`;
+    const lr=maxR+24, lx=cx+lr*Math.cos(a), ly=cy+lr*Math.sin(a);
+    labels += `<text x="${lx}" y="${ly}" text-anchor="middle" dominant-baseline="middle" font-size="10" font-weight="700" fill="#333">${cats[i].name.split(' ')[0]}</text>`;
+    labels += `<text x="${lx}" y="${ly+13}" text-anchor="middle" font-size="10" font-weight="600" fill="${color(cats[i].score)}">${cats[i].score}</text>`;
+  }
+  document.getElementById('radarChart').innerHTML = `<svg viewBox="0 0 300 300" class="radar-svg">${grid}${axes}<polygon points="${dataPts.join(' ')}" fill="rgba(0,193,122,0.15)" stroke="#00C17A" stroke-width="2.5" class="radar-polygon"/>${dots}${labels}</svg>`;
+}
+
+function renderExcitement() {
+  document.getElementById('excitementBars').innerHTML = DATA.excitement.map((v,i) => {
+    const c = v>=85?'#00C17A':v>=70?'#FFBC0A':v>=50?'#FF9172':'#F24935';
+    return `<div class="excitement-bar" style="height:${v}%;background:${c}" title="${i*5}' — ${v}%"><span class="excitement-label">${i*5}'</span></div>`;
+  }).join('');
+}
+
+function renderQuotes() {
+  document.getElementById('quotesGrid').innerHTML = DATA.quotes.map(q => `
+    <div class="quote-card">
+      <div class="quote-mark">"</div>
+      <p class="quote-text">${q.text}</p>
+      <div class="quote-meta">
+        <span class="quote-time">${q.time}</span>
+        <span class="quote-context">${q.context}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderMoments() {
+  const badgeMap = { excellent: ['badge-green','تعليق مميز'], note: ['badge-amber','ملاحظة'], needs_improvement: ['badge-red','يحتاج تحسين'] };
+  document.getElementById('momentsList').innerHTML = DATA.moments.map((m,i) => {
+    const [cls, label] = badgeMap[m.type] || badgeMap.note;
+    return `<div class="moment ${i < DATA.moments.length-1 ? 'has-line' : ''}">
+      <div class="moment-time">${m.time}</div>
+      <div class="moment-content">
+        <div class="moment-badge ${cls}">${label}</div>
+        <p class="moment-text">${m.desc}</p>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderStrengths() {
+  document.getElementById('strengthsList').innerHTML = DATA.strengths.map(s =>
+    `<li><span class="strength-icon">&#10003;</span><span>${s}</span></li>`
+  ).join('');
+  document.getElementById('improvementsList').innerHTML = DATA.improvements.map(s =>
+    `<li><span class="improvement-icon">!</span><span>${s}</span></li>`
+  ).join('');
+}
+
+function renderTranscription() {
+  const colors = { 'المعلق': '#00C17A', 'المحلل': '#0072F9' };
+  document.getElementById('transcriptList').innerHTML = DATA.transcription.map(e => {
+    const c = colors[e.speaker] || '#FFBC0A';
+    return `<div class="transcript-entry">
+      <span class="transcript-time">${e.time}</span>
+      <span class="transcript-speaker" style="background:${c}15;color:${c};border:1px solid ${c}30">${e.speaker}</span>
+      <span class="transcript-text">${e.text}</span>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANIMATIONS
+// ═══════════════════════════════════════════════════════════════
+function countUp(el, target, duration) {
+  const start = performance.now();
+  const step = (now) => {
+    const progress = Math.min((now - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - progress, 3);
+    el.textContent = Math.round(target * eased);
+    if (progress < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+function animateOnScroll() {
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+        // Count-up numbers in this section
+        entry.target.querySelectorAll('[data-target]').forEach(el => {
+          const target = parseInt(el.dataset.target);
+          if (target && el.textContent === '0') countUp(el, target, 1200);
+        });
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.15 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+}
+
+function animateRing() {
+  const ring = document.querySelector('.score-ring-fill');
+  if (!ring) return;
+  const total = 2 * Math.PI * 70;
+  const target = total - (total * 79 / 100);
+  setTimeout(() => {
+    ring.style.transition = 'stroke-dashoffset 1.8s cubic-bezier(0.4,0,0.2,1)';
+    ring.style.strokeDashoffset = target;
+  }, 300);
+}
+
+function animateBars() {
+  document.querySelectorAll('.progress-fill, .mini-bar-fill').forEach(bar => {
+    const w = bar.style.width;
+    bar.style.width = '0%';
+    bar.style.transition = 'width 1.2s ease-out';
+    requestAnimationFrame(() => requestAnimationFrame(() => { bar.style.width = w; }));
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════════════════════
+function filterTab(btn, mode) {
+  btn.closest('.card-tabs').querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('#criteriaList .criteria-group').forEach(group => {
+    const items = group.querySelectorAll('.criteria-item');
+    let vis = 0;
+    items.forEach(item => {
+      const s = parseInt(item.dataset.score) || 0;
+      const show = mode === 'all' || (mode === 'strengths' && s >= 85) || (mode === 'improve' && s < 75);
+      item.style.display = show ? '' : 'none';
+      if (show) vis++;
+    });
+    group.style.display = vis > 0 ? '' : 'none';
+  });
+}
+
+function toggleTranscript() {
+  const content = document.getElementById('transcriptContent');
+  const btn = document.getElementById('transcriptionToggle');
+  const isOpen = content.classList.toggle('expanded');
+  btn.textContent = isOpen ? 'إخفاء' : 'عرض الكل';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  renderCards();
+  renderStats();
+  renderCriteria();
+  renderRadar();
+  renderExcitement();
+  renderQuotes();
+  renderMoments();
+  renderStrengths();
+  renderTranscription();
+
+  // Animations
+  animateRing();
+  animateBars();
+  animateOnScroll();
+});
+</script>
+</body>
+</html>
