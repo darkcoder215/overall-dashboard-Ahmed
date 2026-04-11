@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ════════════════════════════════════════════════════════════════════
+   Thmanyah brand typography
+   The DESIGN_GUIDE.md for this tool specifies the three Thmanyah
+   faces (Serif Display for headlines, Serif Text for long-form, and
+   Sans for digital/UI). We reference them via absolute paths — Vite
+   rewrites these to include the tool's base path during build, so the
+   same declarations work both locally and under `/social-listening/`.
+   ════════════════════════════════════════════════════════════════════ */
+/* Headlines — Thmanyah Serif Display */
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Light.otf') format('opentype');  font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Reg.otf') format('opentype');    font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Bold.otf') format('opentype');   font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Black.otf') format('opentype');  font-weight: 900; font-style: normal; font-display: swap; }
+
+/* Body text — Thmanyah Serif Text */
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Light.otf') format('opentype');    font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Regular.otf') format('opentype');  font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Medium.otf') format('opentype');   font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Bold.otf') format('opentype');     font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Black.otf') format('opentype');    font-weight: 900; font-style: normal; font-display: swap; }
+
+/* Digital / UI — Thmanyah Sans */
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Light.otf') format('opentype');   font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Medium.otf') format('opentype');  font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Bold.otf') format('opentype');    font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Black.otf') format('opentype');   font-weight: 900; font-style: normal; font-display: swap; }
+
 /* LIGHT MODE - White + Green Theme */
 :root {
   --button-outline: rgba(0,0,0, .10);
@@ -43,8 +72,9 @@
   --chart-3: 35 75% 42%;
   --chart-4: 280 65% 40%;
   --chart-5: 0 65% 45%;
-  --font-sans: 'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif;
-  --font-serif: Georgia, serif;
+  --font-sans: 'Thmanyah Sans', 'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif;
+  --font-serif: 'Thmanyah Serif Text', Georgia, serif;
+  --font-display: 'Thmanyah Serif Display', 'Thmanyah Serif Text', Georgia, serif;
   --font-mono: 'IBM Plex Mono', monospace;
   --radius: .5rem;
   --shadow-2xs: 0px 2px 0px 0px hsl(0 0% 0% / 0.00);

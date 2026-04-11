@@ -33,7 +33,7 @@ const Index = () => {
         {/* Right side: Logo + brand name + user info */}
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/10 p-1.5 transition-transform duration-200 hover:scale-105">
-            <img src="/thamanyah.png" alt="ثمانية" className="h-full w-full object-contain" />
+            <img src={`${import.meta.env.BASE_URL}thamanyah.png`} alt="ثمانية" className="h-full w-full object-contain" />
           </div>
           <div>
             <h1 className="font-display text-sm font-bold leading-tight text-white">

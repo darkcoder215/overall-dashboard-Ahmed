@@ -72,7 +72,7 @@ const LoginScreen = ({ onLogin }: LoginScreenProps) => {
               className="mb-4 flex h-20 w-20 items-center justify-center rounded-2xl bg-black p-3 transition-transform duration-300 hover:scale-105"
             >
               {/* Icon logo on dark background per brand guidelines */}
-              <img src="/thamanyah.png" alt="ثمانية" className="h-full w-full object-contain" />
+              <img src={`${import.meta.env.BASE_URL}thamanyah.png`} alt="ثمانية" className="h-full w-full object-contain" />
             </div>
             <h1 className="font-display text-2xl font-bold text-black">
               مساعد ثمانية الذكي

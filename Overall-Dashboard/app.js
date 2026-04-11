@@ -372,7 +372,7 @@ function animateCount(id, target) {
     el.textContent = String(target);
     return;
   }
-  const duration = 700; // ms
+  const duration = 420; // ms — short enough to feel snappy, long enough to notice
   const start = performance.now();
   const easeOut = (t) => 1 - Math.pow(1 - t, 3);
   function step(now) {
@@ -463,7 +463,6 @@ function buildToolCard(tool) {
   const isFav = tool.id && state.favorites.has(tool.id);
 
   card.innerHTML = `
-    <div class="tool-card-sheen" aria-hidden="true"></div>
     <header class="tool-card-head">
       <div class="tool-card-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
@@ -498,9 +497,6 @@ function buildToolCard(tool) {
     toggleFavorite(tool);
   });
 
-  // Cursor-driven 3D tilt + sheen position.
-  attachCardTilt(card);
-
   const open = (e) => {
     if (tool.enabled === false) {
       // Polite head-shake. Also emit a tiny toast so the user knows why.
@@ -518,37 +514,6 @@ function buildToolCard(tool) {
   });
 
   return card;
-}
-
-// ── Card tilt + sheen: tracks mouse position and writes CSS variables.
-//    Uses rAF throttling so we never spam the style system. Disabled when
-//    prefers-reduced-motion is on.
-function attachCardTilt(card) {
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return;
-  let frame = 0;
-  let lastX = 0, lastY = 0;
-
-  card.addEventListener('pointermove', (e) => {
-    const rect = card.getBoundingClientRect();
-    lastX = (e.clientX - rect.left) / rect.width;
-    lastY = (e.clientY - rect.top) / rect.height;
-    if (frame) return;
-    frame = requestAnimationFrame(() => {
-      frame = 0;
-      const rotY = (lastX - 0.5) * 6;   // ±3°
-      const rotX = (0.5 - lastY) * 6;   // ±3°
-      card.style.setProperty('--tilt-x', rotX.toFixed(2) + 'deg');
-      card.style.setProperty('--tilt-y', rotY.toFixed(2) + 'deg');
-      card.style.setProperty('--mx', (lastX * 100).toFixed(1) + '%');
-      card.style.setProperty('--my', (lastY * 100).toFixed(1) + '%');
-    });
-  });
-  card.addEventListener('pointerleave', () => {
-    if (frame) { cancelAnimationFrame(frame); frame = 0; }
-    card.style.setProperty('--tilt-x', '0deg');
-    card.style.setProperty('--tilt-y', '0deg');
-  });
 }
 
 // Emits a few short-lived sparkle particles from a button. Each particle

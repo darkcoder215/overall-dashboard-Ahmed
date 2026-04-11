@@ -52,7 +52,7 @@ const ChatMessage = ({ role, content, citations, onSuggestedQuestion }: ChatMess
         }`}
       >
         {isAssistant ? (
-          <img src="/thamanyah.png" alt="ثمانية" className="h-5 w-5 object-contain" />
+          <img src={`${import.meta.env.BASE_URL}thamanyah.png`} alt="ثمانية" className="h-5 w-5 object-contain" />
         ) : (
           <User className="h-4 w-4" />
         )}

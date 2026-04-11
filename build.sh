@@ -231,10 +231,11 @@ copy_static_tool() {
 }
 
 # =====================================================================
-# 1. Root launcher — Overall Dashboard (vanilla HTML)
+# 1. Root launcher — Overall Dashboard (vanilla HTML) + shared fonts
 # =====================================================================
 sec "Copying root: Overall Dashboard"
 cp -a "$REPO_ROOT/Overall-Dashboard"/. "$OUT_DIR"/
+
 # The dashboard references the commentator tool's font/logo assets via
 # relative paths (../Thmanyah-Commentator-Tool-.../Usable/...). After
 # the monorepo is flattened, those relative paths resolve to
@@ -244,6 +245,26 @@ mkdir -p "$OUT_DIR/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jE
 cp -a \
   "$REPO_ROOT/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/Usable" \
   "$OUT_DIR/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/"
+
+# ── Shared Thmanyah font pool at the site root ──
+# Every tool's CSS references fonts via absolute paths like
+# `url('/fonts/Thmanyah*.otf')`. Vite rewrites those to include the
+# tool's base path during build, but Next.js does NOT — so under
+# subpath deploys the Next.js tools' fonts 404 unless we also place
+# the font files at the root-level `/fonts/` path. Copying the
+# canonical Usable folder here makes the absolute paths resolve
+# correctly regardless of which framework built the tool.
+mkdir -p "$OUT_DIR/fonts"
+cp -a \
+  "$REPO_ROOT/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/Usable"/. \
+  "$OUT_DIR/fonts"/
+# Drop the brand PDF and keep only .otf + .png, since the root /fonts/
+# folder should behave like a clean font pool.
+find "$OUT_DIR/fonts" -maxdepth 1 -type f ! -name '*.otf' ! -name '*.png' -delete 2>/dev/null || true
+# The shared logo also lives at the root so tools can reference it.
+cp -f \
+  "$REPO_ROOT/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/Usable/thamanyah.png" \
+  "$OUT_DIR/thamanyah.png" 2>/dev/null || true
 ok "dashboard launcher + shared fonts in place"
 
 # =====================================================================

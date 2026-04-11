@@ -514,7 +514,15 @@ async function callAPI(base64Audio, format) {
   }
 
   if (!response) {
-    throw new Error(lastError?.message || 'فشل الاتصال بالخادم. تأكد من اتصال الإنترنت وحاول مرة أخرى.');
+    // A "Failed to fetch" TypeError here almost always means the
+    // browser blocked the cross-origin request — likely because the
+    // tool is embedded inside the unified dashboard's iframe and the
+    // `HTTP-Referer` header is being rejected. Make the message
+    // concrete so a support request is easy to triage.
+    const hint = /Failed to fetch|NetworkError|CORS/i.test(lastError?.message || '')
+      ? ' (قد يكون السبب منع المتصفح للطلب من داخل الإطار — جرّب فتح الأداة في تبويب مستقل).'
+      : '';
+    throw new Error((lastError?.message || 'فشل الاتصال بالخادم. تأكد من اتصال الإنترنت وحاول مرة أخرى.') + hint);
   }
 
   if (!response.ok) {
@@ -1219,8 +1227,18 @@ function initHomePage() {
   const container = document.getElementById('dashRecentReports');
   if (!container) return;
 
-  container.innerHTML = DUMMY_REPORTS.slice(0, 3).map(r => `
-    <div class="dash-report-card" onclick="${r.isDummy ? `window.open('dummy.html','_blank')` : ''}">
+  // Render each dummy report as an `<a>` with `target="_blank"` rather
+  // than an `onclick="window.open(...)"` — real links respect the
+  // iframe sandbox's `allow-popups-to-escape-sandbox` flag reliably,
+  // while `window.open` can silently fail in some browsers under
+  // sandboxed parents.
+  container.innerHTML = DUMMY_REPORTS.slice(0, 3).map(r => {
+    const tag = r.isDummy ? 'a' : 'div';
+    const openAttrs = r.isDummy
+      ? ` href="dummy.html" target="_blank" rel="noopener"`
+      : '';
+    return `
+    <${tag} class="dash-report-card"${openAttrs}>
       <div class="dash-report-teams">
         <span class="dash-report-team">${r.teamA}</span>
         <span class="dash-report-vs">${r.score}</span>
@@ -1237,8 +1255,9 @@ function initHomePage() {
         <span class="dash-report-rating">${r.rating}</span>
         <span class="dash-report-comp">${r.competition}</span>
       </div>
-    </div>
-  `).join('');
+    </${tag}>
+  `;
+  }).join('');
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1321,8 +1340,12 @@ function renderReportsGrid() {
   grid.innerHTML = reports.map(r => {
     const topCat = [...r.categories].sort((a, b) => b.score - a.score)[0];
     const lowCat = [...r.categories].sort((a, b) => a.score - b.score)[0];
+    const tag = r.isDummy ? 'a' : 'div';
+    const openAttrs = r.isDummy
+      ? ` href="dummy.html" target="_blank" rel="noopener"`
+      : '';
     return `
-    <div class="report-list-card" onclick="${r.isDummy ? `window.open('dummy.html','_blank')` : ''}">
+    <${tag} class="report-list-card"${openAttrs}>
       <div class="report-list-top">
         <div class="report-list-match">
           <span class="report-list-teams">${r.teamA} ${r.score} ${r.teamB}</span>
@@ -1357,7 +1380,7 @@ function renderReportsGrid() {
         <span class="report-list-worst tag tag-amber">يحتاج تحسين: ${lowCat.name} (${lowCat.score})</span>
         ${r.video_url ? `<a href="${r.video_url}" target="_blank" rel="noopener" class="tag tag-blue" onclick="event.stopPropagation();" style="text-decoration:none;">&#9654; مشاهدة الفيديو</a>` : ''}
       </div>
-    </div>
+    </${tag}>
   `;
   }).join('');
 }
@@ -1681,9 +1704,27 @@ function showToast(message) {
 }
 
 // ── Initialization ──
+//
+// When the tool runs inside the unified dashboard's iframe, a runtime
+// error here would leave the user staring at a blank or partially-
+// rendered page with no obvious cause. Wrap the bootstrap in a top-
+// level error handler that surfaces the failure inside the error
+// modal instead of dying silently.
+window.addEventListener('error', (ev) => {
+  console.error('[commentator] runtime error:', ev.error || ev.message);
+});
+window.addEventListener('unhandledrejection', (ev) => {
+  console.error('[commentator] unhandled promise rejection:', ev.reason);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
-  initUpload();
-  showView('home');
+  try {
+    initUpload();
+    showView('home');
+  } catch (err) {
+    console.error('[commentator] bootstrap failed:', err);
+    showError('خطأ في التشغيل', err?.message || 'تعذّر تشغيل الأداة.');
+  }
 
   // Sidebar toggle
   const sidebar = document.getElementById('sidebar');

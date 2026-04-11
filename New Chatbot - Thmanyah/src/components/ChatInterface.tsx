@@ -133,7 +133,7 @@ const ChatInterface = ({ userRole, userId }: ChatInterfaceProps) => {
             <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in-up" dir="rtl">
               {/* Logo in black container per brand guidelines */}
               <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl bg-black p-4 shadow-lg transition-transform duration-300 hover:scale-105">
-                <img src="/thamanyah.png" alt="ثمانية" className="h-full w-full object-contain" />
+                <img src={`${import.meta.env.BASE_URL}thamanyah.png`} alt="ثمانية" className="h-full w-full object-contain" />
               </div>
 
               <h2 className="mb-2 font-display text-2xl font-bold text-foreground">
@@ -174,7 +174,7 @@ const ChatInterface = ({ userRole, userId }: ChatInterfaceProps) => {
           {isLoading && (
             <div className="flex items-center gap-3 animate-fade-in" dir="rtl">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-black p-1.5">
-                <img src="/thamanyah.png" alt="ثمانية" className="h-5 w-5 object-contain" />
+                <img src={`${import.meta.env.BASE_URL}thamanyah.png`} alt="ثمانية" className="h-5 w-5 object-contain" />
               </div>
               <div className="flex items-center gap-1.5 rounded-2xl bg-card px-4 py-3 border border-border">
                 {/* Three animated dots */}
