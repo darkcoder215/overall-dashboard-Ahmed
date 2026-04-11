@@ -1,4 +1,4 @@
-// Overall Dashboard — Supabase client config.
+// Overall Dashboard — Supabase + routing config.
 //
 // The publishable (anon) key below is safe to ship in a browser: it is
 // rate-limited at the edge and every table is protected by Row-Level
@@ -16,23 +16,19 @@ window.DASHBOARD_CONFIG = {
   REQUIRE_AUTH: false,
 
   // ── Tool URL overrides ─────────────────────────────────────────
-  // Each key matches a `slug` in tools.js / public.tools. When the
-  // dashboard opens a tool it first looks here — so after you deploy
-  // the individual tools to Vercel you just paste their production
-  // URLs below and everything keeps working in-place (iframe) without
-  // touching the registry. Leave a slug out to fall back to tool.url
-  // from the DB / STATIC_TOOLS entry.
+  // Each key matches a `slug` in tools.js / public.tools. The unified
+  // `build.sh` at the repo root builds every tool into a subdirectory
+  // of the root Vercel deploy — so they all share the same origin as
+  // the dashboard and iframing them just works (no CSP frame-ancestors,
+  // no cross-origin cookies). Leave a slug pointing at a same-origin
+  // path, or override with an absolute URL if you'd rather consume a
+  // tool from a separate Vercel project.
   TOOL_URLS: {
-    // When deployed alongside the dashboard under the root vercel.json
-    // the Commentator tool is exposed at `/commentator`.
-    'commentator': '/commentator',
-
-    // Replace the four below with the production URLs of the individual
-    // Vercel projects for each tool before going live.
-    // 'chatbot':          'https://thmanyah-chatbot.vercel.app',
-    // 'social-listening': 'https://thmanyah-social-listening.vercel.app',
-    // 'podcast-video':    'https://thmanyah-podcast-video.vercel.app',
-    // 'hr-approval':      'https://thmanyah-hr-approval.vercel.app',
-    // 'feedback-platform':'https://thmanyah-feedback-platform.vercel.app',
+    'commentator':       '/commentator/',
+    'chatbot':           '/chatbot/',
+    'social-listening':  '/social-listening/',
+    'podcast-video':     '/podcast-video/',
+    'hr-approval':       '/hr-approval/',
+    'feedback-platform': '/feedback-platform/',
   },
 };

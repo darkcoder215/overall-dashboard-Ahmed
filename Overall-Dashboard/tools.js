@@ -9,7 +9,7 @@ export const STATIC_TOOLS = [
     description_ar: 'تحليل أداء المعلقين الرياضيين عبر 32 معيارًا مهنيًا عبر 8 محاور مع تقارير PDF.',
     category: 'analytics',
     icon: 'mic',
-    url: '../Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/index.html',
+    url: '/commentator/',
     enabled: true,
     position: 10,
   },
@@ -20,7 +20,7 @@ export const STATIC_TOOLS = [
     description_ar: 'رصد المحتوى الاجتماعي، تحليل التغريدات، واصطياد المرشحين عبر LinkedIn وApify.',
     category: 'social',
     icon: 'radio',
-    url: 'http://localhost:8080',
+    url: '/social-listening/',
     enabled: true,
     position: 20,
   },
@@ -31,7 +31,7 @@ export const STATIC_TOOLS = [
     description_ar: 'مساعد ذكي يجيب على أسئلة السياسات والمعلومات عبر استرجاع المستندات (RAG).',
     category: 'ai',
     icon: 'message-square',
-    url: 'http://localhost:8080',
+    url: '/chatbot/',
     enabled: true,
     position: 30,
   },
@@ -42,7 +42,7 @@ export const STATIC_TOOLS = [
     description_ar: 'رفع البودكاست والفيديو، توليد التفريغات النصية، والبحث داخلها.',
     category: 'content',
     icon: 'video',
-    url: 'http://localhost:3000',
+    url: '/podcast-video/',
     enabled: true,
     position: 40,
   },
@@ -53,7 +53,7 @@ export const STATIC_TOOLS = [
     description_ar: 'إدارة طلبات فتح الوظائف الشاغرة وتوجيهها في سلسلة الاعتماد.',
     category: 'hr',
     icon: 'clipboard-check',
-    url: 'http://localhost:3000',
+    url: '/hr-approval/',
     enabled: true,
     position: 50,
   },
@@ -64,7 +64,7 @@ export const STATIC_TOOLS = [
     description_ar: 'تحليل تقييمات الموظفين، فترات التجربة، وتقييمات القادة مع لوحات بيانية.',
     category: 'hr',
     icon: 'bar-chart-3',
-    url: 'http://localhost:3000',
+    url: '/feedback-platform/',
     enabled: true,
     position: 60,
   },
@@ -90,4 +90,16 @@ export const CATEGORY_LABELS = {
   ai: 'ذكاء اصطناعي',
   social: 'اجتماعي',
   general: 'عام',
+};
+
+// Per-tool accent — drives the glow colour on each tool card. Keys are
+// tool slugs; values are keywords consumed by [data-accent] CSS rules
+// in styles.css.
+export const TOOL_ACCENTS = {
+  'commentator':        'amber',
+  'chatbot':            'blue',
+  'social-listening':   'peach',
+  'podcast-video':      'red',
+  'hr-approval':        'green',
+  'feedback-platform':  'charcoal',
 };

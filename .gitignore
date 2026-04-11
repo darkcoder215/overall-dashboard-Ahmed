@@ -1,0 +1,28 @@
+# ── Unified build output (produced by build.sh at repo root) ──
+_site/
+_build-logs/
+
+# ── Per-tool build artefacts (each tool still builds locally too) ──
+**/node_modules/
+**/.next/
+**/out/
+**/dist/
+**/build/
+**/.turbo/
+**/.vercel/
+
+# ── Envs ──
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+**/.env.*.local
+!**/.env.example
+
+# ── Logs / OS cruft ──
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

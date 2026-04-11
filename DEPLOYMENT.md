@@ -1,94 +1,172 @@
 # Deployment Guide — Thmanyah Overall Dashboard
 
-> This monorepo ships **seven independently-deployable apps** that are
-> stitched together at runtime by the `Overall-Dashboard/` app. Each
-> tool card in the dashboard opens its destination URL in an in-place
-> `<iframe>` tab, so the user stays on the dashboard while working
-> inside any tool.
+> **One Vercel project. One `vercel deploy`. All seven tools live.**
 >
-> All seven apps share a single Supabase project
-> (`hbnvbfcwrfanpayxulih`, region: `us-east-1`). Tool-specific schemas
-> live in isolated Postgres schemas — see
-> `Overall-Dashboard/supabase/migrations/` for the canonical SQL.
+> This repo ships the Overall Dashboard launcher and six tools as a
+> single Vercel deployment. Every tool stays in its own folder — kept
+> as an independent module so each can be edited, tested, and even
+> broken without taking down the rest. The root-level `build.sh`
+> orchestrates every tool's build in a fault-isolated subshell and
+> collates the results into a unified `_site/` directory that Vercel
+> serves as static output.
 
 ---
 
 ## 1. Architecture at a glance
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  Vercel project #1  — "thmanyah-overall-dashboard"        │
-│  Root: /  (this repo)                                     │
-│                                                           │
-│  Serves (via /vercel.json rewrites):                      │
-│    /                → /Overall-Dashboard/index.html       │
-│    /commentator     → /Thmanyah-Commentator-Tool-.../     │
-│    /dashboard/…     → /Overall-Dashboard/…                │
-│                                                           │
-│  Content: two vanilla HTML apps                           │
-│    · Overall-Dashboard/  (the launcher itself)            │
-│    · Thmanyah-Commentator-Tool-.../  (sports analysis)    │
-└──────────────────────────────────────────────────────────┘
-
-┌──────────────────────────┐  ┌──────────────────────────┐
-│  Vercel #2 — chatbot     │  │  Vercel #3 — social      │
-│  Root: /New Chatbot.../  │  │  Root: /Social-List.../  │
-│  Framework: Vite         │  │  Framework: Vite         │
-└──────────────────────────┘  └──────────────────────────┘
-
-┌──────────────────────────┐  ┌──────────────────────────┐
-│  Vercel #4 — podcast     │  │  Vercel #5 — hr-approval │
-│  Root: /Podcast.../      │  │  Root: /HR-Approval.../  │
-│  Framework: Next.js      │  │  Framework: Next.js      │
-└──────────────────────────┘  └──────────────────────────┘
-
-┌──────────────────────────┐
-│  Vercel #6 — feedback    │
-│  Root: /Feedback.../     │
-│  Framework: Next.js      │
-└──────────────────────────┘
-             ▲
-             │   (all 6 subprojects share the same Supabase project)
-┌────────────┴─────────────┐
-│   Supabase (shared)      │
-│   project:               │
-│   hbnvbfcwrfanpayxulih   │
-│                          │
-│   schemas:               │
-│     public (dashboard)   │
-│     chatbot              │
-│     social_listening     │
-└──────────────────────────┘
+┌───────────────────────────────────────────────────────────────┐
+│  ONE Vercel project  —  "thmanyah-overall-dashboard"          │
+│  Root Directory: /  (this repo)                               │
+│  Build Command:  bash build.sh                                │
+│  Output Directory: _site/                                     │
+│                                                               │
+│  Served paths (all same-origin):                              │
+│    /                       → Overall-Dashboard launcher       │
+│    /commentator/           → Commentator Analysis (vanilla)   │
+│    /chatbot/               → Chatbot (Vite static)            │
+│    /social-listening/      → Social Listening (Vite static)   │
+│    /podcast-video/         → Podcast & Video (Next.js export) │
+│    /hr-approval/           → HR Approval (Next.js export)     │
+│    /feedback-platform/     → Feedback Analysis (Next.js)      │
+└───────────────────────────────────────────────────────────────┘
+                               │
+                               │ (all seven tools share a single
+                               │  Supabase project via the shared
+                               │  publishable key)
+                               ▼
+┌───────────────────────────────┐
+│   Supabase (shared)           │
+│   project: hbnvbfcwrfanpayxulih│
+│   schemas:                    │
+│     public (dashboard)        │
+│     chatbot                   │
+│     social_listening          │
+└───────────────────────────────┘
 ```
 
-Why one Vercel project per framework app? Because mixing Next.js,
-Vite, and raw HTML under a single deployment forces awkward
-`buildCommand` contortions and breaks framework detection. Vercel's
-"one repo, many projects" pattern (each with its own **Root
-Directory**) is simpler and scales.
+### Why single deploy?
 
-The dashboard discovers every tool's live URL at runtime through
-`Overall-Dashboard/config.js → DASHBOARD_CONFIG.TOOL_URLS`. You only
-edit that file once per deploy.
+- **Cross-origin iframe issues vanish.** Every tool lives under the
+  same origin as the dashboard, so there's no `X-Frame-Options`
+  or CSP `frame-ancestors` dance — iframes just work.
+- **One `git push` = everything live.** No six-project Vercel
+  dashboard to babysit. No six URLs to paste into `TOOL_URLS`.
+- **Independent modules, one commit history.** Each tool keeps its
+  own folder, its own `package.json`, its own build config. They're
+  still self-contained — you can `cd` into any of them and run
+  `npm run dev` locally just like before.
+- **Fault isolation at build time.** If one tool's `npm run build`
+  blows up, `build.sh` logs the failure, writes a placeholder page at
+  `/<slug>/index.html`, and keeps going. The other tools still ship.
 
 ---
 
-## 2. One-time setup
+## 2. The build orchestrator (`build.sh`)
 
-### 2.1 Supabase
-
-The schema is already applied to project `hbnvbfcwrfanpayxulih`.
-If you need to reproduce it on a fresh project:
+`build.sh` is the heart of the single-deploy strategy. Vercel runs
+it via the `buildCommand` defined in the root `vercel.json`. At a
+glance:
 
 ```bash
-cd Overall-Dashboard/supabase
-# Order matters — filenames are timestamped.
-for f in migrations/*.sql; do
-  psql "$DATABASE_URL" -f "$f"
-done
+# Invoked by Vercel:
+bash build.sh
+
+# Useful local flags:
+SKIP_INSTALL=1 bash build.sh            # reuse node_modules (fast rebuilds)
+ONLY_TOOL=chatbot bash build.sh         # build a single tool, skip the rest
+VERBOSE=1 bash build.sh                 # stream per-tool logs to stdout
 ```
 
-Migrations (executed in order):
+What it does, in order:
+
+1. **Wipe `_site/`** and create a fresh output directory.
+2. **Copy the Overall Dashboard** (`Overall-Dashboard/`) to `_site/`
+   — this is the root launcher. The Commentator tool's shared
+   font/logo assets get mirrored under
+   `_site/Thmanyah-Commentator-Tool-…/Usable/` so the dashboard's
+   relative `../…/Usable/…` paths continue to resolve.
+3. **For every other tool**, run `build_tool slug name tool_dir dist_subdir npm run build`
+   inside an isolated subshell that:
+   - installs dependencies (`npm ci` if `package-lock.json` is
+     present, otherwise `npm install`);
+   - exports the tool-specific build env vars (`BASE_PATH=/slug/`
+     for Vite, `NEXT_EXPORT=1` + `NEXT_BASE_PATH=/slug` for Next.js);
+   - runs the tool's build;
+   - copies the produced `dist/` or `out/` folder into `_site/<slug>/`.
+4. **On any failure**, write a placeholder `_site/<slug>/index.html`
+   that says the tool is offline and points at `/_build-logs/<slug>.log`
+   so you can read the Vercel build log after deploy.
+5. **Exit 0** — even if some tools failed. A single broken tool must
+   never block the rest of the dashboard from shipping.
+
+### Per-tool build configuration
+
+Each tool reads environment variables in its own build config so the
+same source tree works in two modes:
+
+| Tool | Config file | Envs consumed | Output |
+|---|---|---|---|
+| Chatbot | `vite.config.ts` | `BASE_PATH` | `dist/` |
+| Social Listening | `vite.config.ts` | `BASE_PATH` | `dist/` |
+| Podcast & Video | `next.config.js` | `NEXT_EXPORT`, `NEXT_BASE_PATH` | `out/` |
+| HR Approval | `next.config.ts` | `NEXT_EXPORT`, `NEXT_BASE_PATH` | `out/` |
+| Feedback Platform | `next.config.mjs` | `NEXT_EXPORT`, `NEXT_BASE_PATH` | `out/` |
+
+Local dev (`npm run dev`) never sets those env vars, so every tool
+still runs on its dev port with full framework features — including
+server actions and API routes in the Next.js tools.
+
+### Known limitation: Next.js server features in static mode
+
+Next.js static export (`output: 'export'`) disables **server
+actions**, **API routes**, and **dynamic server components**. Tools
+that currently depend on server features fall into two buckets:
+
+- **Feedback Platform** — pure client-side today, exports cleanly.
+- **Podcast & Video** and **HR Approval** — have `/api/*` routes for
+  heavier tasks (transcription, analyze). In the unified deploy those
+  routes will 404. Migration path: move the server logic into Supabase
+  Edge Functions (the shared project already hosts the chatbot's
+  functions), or replace `fetch('/api/...')` calls with direct
+  `@supabase/supabase-js` calls backed by RLS-protected tables.
+- **Commentator** — vanilla HTML, nothing to export. The hardcoded
+  OpenRouter key in `Thmanyah-Commentator-Tool-…/app.js:7` must still
+  be rotated and replaced with a Supabase Edge Function proxy before
+  any public deploy. See §5 below.
+
+If a Next.js tool's build fails in the unified deploy because of
+a server-only feature, `build.sh` will fall through gracefully and
+ship a placeholder — the rest of the dashboard is unaffected.
+
+---
+
+## 3. First-time Vercel setup
+
+1. **Vercel → Add New → Project → Import this repo.**
+2. **Root Directory:** leave as `/` (the repo root).
+3. **Framework Preset:** `Other` — Vercel will auto-detect the
+   `buildCommand` / `outputDirectory` from `vercel.json`. Do NOT
+   override them.
+4. **Environment variables:** none are required for the build step
+   itself. The unified Supabase URL + publishable key are baked into
+   `Overall-Dashboard/config.js`. If any individual tool pulls secrets
+   from env at build time (check its `.env.example`), set them in the
+   Vercel project settings under the standard `Production` /
+   `Preview` scopes.
+5. **Deploy.**
+
+That's it. Any subsequent `git push` to the production branch
+triggers a rebuild that runs `bash build.sh` and redeploys every tool
+from scratch in one pass.
+
+---
+
+## 4. Supabase
+
+The shared project is `hbnvbfcwrfanpayxulih` (region `us-east-1`).
+Migrations live in `Overall-Dashboard/supabase/migrations/` and must
+be applied in filename order:
 
 | # | File | Purpose |
 |---|---|---|
@@ -96,157 +174,129 @@ Migrations (executed in order):
 | 2 | `20260411140200_init_tools_registry.sql` | `tools` table + six seed rows |
 | 3 | `20260411140300_init_favorites_and_audit.sql` | `tool_favorites`, `audit_logs` |
 | 4 | `20260411140400_rls_policies_and_optimization.sql` | Optimized RLS + FK indexes |
-| 5 | `20260411150100_reflect_chatbot_schema.sql` | Isolated `chatbot` schema (8 tables, pgvector, pg_trgm) |
-| 6 | `20260411150200_reflect_social_listening_schema.sql` | Isolated `social_listening` schema (5 tables) |
+| 5 | `20260411150100_reflect_chatbot_schema.sql` | Isolated `chatbot` schema (pgvector, pg_trgm) |
+| 6 | `20260411150200_reflect_social_listening_schema.sql` | Isolated `social_listening` schema |
+| 7 | `20260411160100_chatbot_fk_indexes.sql` | FK covering indexes for advisor lints |
 
-Storage bucket `documents` must be created manually in the Supabase
-dashboard (private, `authenticated` role only).
+```bash
+cd Overall-Dashboard/supabase
+for f in migrations/*.sql; do
+  psql "$DATABASE_URL" -f "$f"
+done
+```
 
-### 2.2 Edge-function secrets
+The `documents` storage bucket (private, `authenticated` role) still
+needs to be created manually in the Supabase dashboard.
 
-Inside **Supabase Dashboard → Project → Edge Functions → Secrets**
-set, at minimum:
+### Edge-function secrets
+
+In **Supabase Dashboard → Project → Edge Functions → Secrets** set:
 
 - `OPENAI_API_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (auto-populated by Supabase itself)
+- `SUPABASE_SERVICE_ROLE_KEY` (auto-populated)
 
-Then deploy the edge functions from each source tool via the Supabase
-CLI, e.g.
+Then deploy the chatbot's edge functions (still the only ones
+currently in use):
 
 ```bash
 cd "New Chatbot - Thmanyah"
-supabase functions deploy chat            --project-ref hbnvbfcwrfanpayxulih
+supabase functions deploy chat             --project-ref hbnvbfcwrfanpayxulih
 supabase functions deploy process-document --project-ref hbnvbfcwrfanpayxulih
-supabase functions deploy authenticate    --project-ref hbnvbfcwrfanpayxulih
+supabase functions deploy authenticate     --project-ref hbnvbfcwrfanpayxulih
 ```
 
 ---
 
-## 3. Vercel — create six projects
-
-For each of the six app directories below, do this once:
-
-1. In Vercel, **Add New → Project → Import Git Repository** (pick this repo).
-2. Set **Root Directory** to the subfolder.
-3. Framework Preset is auto-detected (verify against table).
-4. Add the environment variables from each folder's `.env.example`.
-5. Deploy.
-
-| App | Root directory | Framework | Env vars file |
-|---|---|---|---|
-| **Overall Dashboard + Commentator** | `.` (repo root) | Other (static) | — |
-| **Chatbot** | `New Chatbot - Thmanyah` | Vite | `.env.example` |
-| **Social Listening** | `Social-Listening---Final-Bassam-claude-debug-blank-page-3cSDv` | Vite | `.env.example` |
-| **Podcast & Video** | `Podcast & Video Analysis Platform` | Next.js | `.env.example` |
-| **HR Approval** | `HR-Approval-Workflow-claude-hiring-approval-framework-5782x/HR-Approval-Workflow-claude-hiring-approval-framework-5782x` | Next.js | `.env.example` |
-| **Feedback Platform** | `Feedback Platform/company-feedback-platform-abdulqudoos-claude-feedback-analysis-platform-dwcOg` | Next.js | `.env.example` |
-
-> The root-level project (`.`) exists to serve the two vanilla HTML
-> apps (Overall-Dashboard and the Commentator tool) together, so that
-> the dashboard's relative `../Thmanyah-Commentator-Tool-.../Usable/`
-> font/logo references resolve correctly.
-
----
-
-## 4. Wire the tool URLs into the dashboard
-
-After every tool has a live Vercel URL, open
-`Overall-Dashboard/config.js` and fill in the `TOOL_URLS` map:
-
-```js
-TOOL_URLS: {
-  'commentator':       '/commentator',                                    // same origin
-  'chatbot':           'https://thmanyah-chatbot.vercel.app',
-  'social-listening':  'https://thmanyah-social-listening.vercel.app',
-  'podcast-video':     'https://thmanyah-podcast-video.vercel.app',
-  'hr-approval':       'https://thmanyah-hr-approval.vercel.app',
-  'feedback-platform': 'https://thmanyah-feedback.vercel.app',
-},
-```
-
-Redeploy the root project. The dashboard will now open every tool
-inside an iframe tab.
-
----
-
-## 5. iframe embedding — CSP notes
-
-By default, Next.js and Vite both emit
-`X-Frame-Options: SAMEORIGIN`, which blocks cross-origin iframing.
-The dashboard and each tool live on **different** Vercel subdomains,
-so you have two options:
-
-### Option A — allow the dashboard origin (recommended)
-
-Add a `Content-Security-Policy: frame-ancestors` header to each
-tool's `vercel.json`. Example for the chatbot:
-
-```json
-{
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "Content-Security-Policy",
-          "value": "frame-ancestors 'self' https://*.vercel.app https://YOUR-DASHBOARD-DOMAIN"
-        }
-      ]
-    }
-  ]
-}
-```
-
-Replace `YOUR-DASHBOARD-DOMAIN` with whatever the root project's
-primary domain ends up being.
-
-### Option B — same-origin rewrites
-
-Host everything under the **root** Vercel project by adding rewrites
-to the root `vercel.json` that proxy each tool's path to its Vercel
-deployment URL. This keeps the iframe same-origin from the browser's
-point of view and avoids CSP entirely, at the cost of an extra
-network hop per request.
-
-```json
-{
-  "rewrites": [
-    { "source": "/chatbot/(.*)", "destination": "https://thmanyah-chatbot.vercel.app/$1" }
-  ]
-}
-```
-
-Pick whichever fits your hosting posture.
-
----
-
-## 6. Rotating the OpenRouter key (security)
+## 5. Rotating the OpenRouter key (security)
 
 `Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/app.js`
-currently ships a hardcoded `sk-or-v1-...` OpenRouter API key (see
-line 7). **Rotate this key immediately** before any public deploy and
-replace the direct call with a Supabase edge function that proxies
-the request server-side. The `.env.example` in that folder sketches
-the layout for the proxy URL.
+still ships a hardcoded `sk-or-v1-…` OpenRouter key (around line 7).
+**Rotate this key immediately before any public deploy** and replace
+the direct call with a Supabase edge function that proxies the
+request server-side. The `.env.example` in that folder sketches the
+layout for the proxy URL.
 
 ---
 
-## 7. Local development
+## 6. Local development
+
+### Just the dashboard (no tools)
 
 ```bash
-# 1. Dashboard + commentator (vanilla HTML — no build step)
 cd Overall-Dashboard
 python3 -m http.server 8765
 # visit http://localhost:8765
+```
 
-# 2. Any framework tool
+The tool cards will use the URLs in `config.js → TOOL_URLS`, which
+point at same-origin paths like `/chatbot/`. If those paths don't
+exist yet they'll 404 inside the iframe — that's expected in raw dev
+mode.
+
+### Full local preview (mirrors production)
+
+```bash
+bash build.sh                                 # build all tools once
+cd _site && python3 -m http.server 8765       # serve the unified output
+# visit http://localhost:8765
+```
+
+Every tool is now reachable at its production path (`/chatbot/`,
+`/feedback-platform/`, etc.) just like it will be on Vercel.
+
+Fast iteration on a single tool:
+
+```bash
+SKIP_INSTALL=1 ONLY_TOOL=chatbot bash build.sh
+```
+
+### Individual tool dev
+
+Each tool still runs standalone, untouched:
+
+```bash
 cd "New Chatbot - Thmanyah"
 cp .env.example .env.local
 npm install
 npm run dev
 ```
 
-If you want the dashboard to point at your local dev servers,
-temporarily edit `Overall-Dashboard/config.js → TOOL_URLS` to use
-`http://localhost:5173` (Vite) or `http://localhost:3000` (Next.js).
-Remember to revert before committing.
+Local dev never sets `BASE_PATH` or `NEXT_EXPORT`, so each tool
+behaves exactly as it did before the unification work.
+
+---
+
+## 7. Troubleshooting
+
+### "A tool's iframe shows a placeholder"
+
+That means its `npm run build` failed during the unified deploy.
+Steps:
+1. Open `https://YOUR-DEPLOY/_build-logs/<slug>.log` to read the
+   actual build error (no auth wall — the logs are shipped as part
+   of `_site/`).
+2. Reproduce locally with `ONLY_TOOL=<slug> bash build.sh`.
+3. Fix and push.
+
+### "Assets 404 under /<slug>/"
+
+The tool's build config isn't honouring the `BASE_PATH` /
+`NEXT_BASE_PATH` env var. Check that the tool's `vite.config.ts` or
+`next.config.*` reads the env and sets `base` / `basePath`
+accordingly. All five framework tools in this repo already do.
+
+### "I want a tool to run on a separate Vercel project instead"
+
+Open `Overall-Dashboard/config.js` and replace the same-origin path
+in `TOOL_URLS` with the absolute URL of the dedicated deploy:
+
+```js
+TOOL_URLS: {
+  'podcast-video': 'https://thmanyah-podcast-video.vercel.app',
+  // …
+}
+```
+
+The dashboard will iframe the external URL instead. That tool will
+also need a `Content-Security-Policy: frame-ancestors` header
+pointing back at your dashboard origin to allow the embed.

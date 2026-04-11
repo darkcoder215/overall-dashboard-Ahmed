@@ -4,7 +4,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { STATIC_TOOLS, ICONS, CATEGORY_LABELS } from './tools.js';
+import { STATIC_TOOLS, ICONS, CATEGORY_LABELS, TOOL_ACCENTS } from './tools.js';
 
 const CONFIG = window.DASHBOARD_CONFIG || {};
 
@@ -353,8 +353,6 @@ function renderStats() {
   setText('statEnabledTools', String(enabled));
   setText('statFavorites', String(favs));
   setText('statCategories', String(cats));
-  const ring = document.getElementById('welcomeRingCount');
-  if (ring) ring.textContent = String(enabled);
 }
 
 function renderHomeToolsGrid() {
@@ -408,33 +406,37 @@ function renderFavoritesView() {
 }
 
 function buildToolCard(tool) {
-  const card = document.createElement('div');
+  const card = document.createElement('article');
   card.className = 'tool-card' + (tool.enabled === false ? ' disabled' : '');
   card.setAttribute('role', 'button');
   card.setAttribute('tabindex', '0');
   card.setAttribute('aria-label', tool.name_ar);
+  const accent = TOOL_ACCENTS[tool.slug] || 'green';
+  card.setAttribute('data-accent', accent);
 
   const iconSvg = ICONS[tool.icon] || ICONS['layout-grid'];
   const isFav = tool.id && state.favorites.has(tool.id);
 
   card.innerHTML = `
-    <div class="tool-card-head">
+    <header class="tool-card-head">
       <div class="tool-card-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
       </div>
       <button class="tool-card-fav ${isFav ? 'active' : ''}" aria-label="إضافة للمفضلة" data-fav>
         <svg viewBox="0 0 24 24" fill="${isFav ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       </button>
+    </header>
+    <div class="tool-card-body">
+      <div class="tool-card-en">${escapeHtml(tool.name_en || '')}</div>
+      <h3 class="tool-card-title">${escapeHtml(tool.name_ar)}</h3>
+      <p class="tool-card-desc">${escapeHtml(tool.description_ar || '')}</p>
     </div>
-    <div>
-      <div class="tool-card-title">${escapeHtml(tool.name_ar)}</div>
-      <div class="tool-card-en">${escapeHtml(tool.name_en)}</div>
-    </div>
-    <p class="tool-card-desc">${escapeHtml(tool.description_ar || '')}</p>
-    <div class="tool-card-footer">
-      <span class="tool-tag">${escapeHtml(CATEGORY_LABELS[tool.category] || tool.category)}</span>
-      <span class="open-arrow">فتح الأداة ←</span>
-    </div>
+    <footer class="tool-card-footer">
+      <span class="tool-tag">${escapeHtml(CATEGORY_LABELS[tool.category] || tool.category || '')}</span>
+      <span class="open-arrow">افتح الأداة
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+      </span>
+    </footer>
   `;
 
   // Favorite toggle (stops propagation so it doesn't also open the tool).

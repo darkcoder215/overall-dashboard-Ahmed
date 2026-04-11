@@ -74,24 +74,24 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
       <div class="top-bar-content">
-        <h1 class="page-title" id="pageTitle">الرئيسية</h1>
+        <div class="top-bar-title">
+          <h1 class="page-title" id="pageTitle">الرئيسية</h1>
+          <span class="page-breadcrumb" id="pageBreadcrumb">Thmanyah · Overall Dashboard</span>
+        </div>
         <div class="top-bar-actions">
-          <button class="btn btn-secondary btn-sm" id="reloadFrameBtn" onclick="reloadActiveTab()" hidden>
+          <button class="btn btn-ghost btn-sm" id="reloadFrameBtn" onclick="reloadActiveTab()" hidden title="إعادة تحميل الأداة">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            <span>إعادة تحميل</span>
           </button>
-          <a class="btn btn-secondary btn-sm" id="openInNewTabBtn" href="#" target="_blank" rel="noopener" hidden>
+          <a class="btn btn-ghost btn-sm" id="openInNewTabBtn" href="#" target="_blank" rel="noopener" hidden title="فتح في نافذة جديدة">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-            <span>فتح في نافذة</span>
           </a>
-          <button class="btn btn-secondary btn-sm" id="refreshToolsBtn" onclick="refreshTools()">
+          <button class="btn btn-ghost btn-sm" id="refreshToolsBtn" onclick="refreshTools()" title="تحديث السجل">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
-            <span>تحديث</span>
           </button>
-          <a class="btn btn-primary btn-sm" id="browseToolsBtn" href="#tools" onclick="navigateTo('tools')">
+          <button class="btn btn-primary btn-sm" id="browseToolsBtn" onclick="navigateTo('tools')">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            <span>استعراض الأدوات</span>
-          </a>
+            <span>كل الأدوات</span>
+          </button>
         </div>
       </div>
     </header>
@@ -103,112 +103,57 @@
     <div class="view view-home view-active" data-view="home">
       <div class="content-scroll">
 
-        <!-- Welcome Hero -->
-        <div class="dash-welcome">
-          <div class="dash-welcome-text">
-            <h2 class="dash-welcome-title">لوحة الأدوات الموحّدة</h2>
-            <p class="dash-welcome-desc">
-              مرحبًا بك في اللوحة الموحّدة لأدوات ثمانية. جميع الأدوات في مكان واحد —
-              منصّة التقييمات، تحليل المعلقين، الرصد الاجتماعي، المساعد الذكي،
-              وتحليل البودكاست. اختر أداة لتنطلق مباشرة.
+        <!-- ── Hero ── -->
+        <section class="hero">
+          <div class="hero-gradient" aria-hidden="true"></div>
+          <div class="hero-inner">
+            <span class="hero-eyebrow">THMANYAH · منصّة واحدة</span>
+            <h1 class="hero-title">
+              <span class="hero-title-line">كلّ أدواتك</span>
+              <span class="hero-title-line hero-title-accent">في مكانٍ واحد.</span>
+            </h1>
+            <p class="hero-sub">
+              ست أدوات متصلة بقاعدة بيانات موحّدة — من تحليل المعلقين إلى الرصد الاجتماعي
+              والتقييمات. كلّها داخل نافذة واحدة، بدون تبويبات متعدّدة أو تسجيلات متكرّرة.
             </p>
-            <div class="dash-welcome-actions">
-              <button class="btn btn-accent" onclick="navigateTo('tools')">
-                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-                استعراض جميع الأدوات
+            <div class="hero-actions">
+              <button class="btn btn-accent btn-lg" onclick="navigateTo('tools')">
+                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+                استعراض الأدوات
               </button>
-              <a href="../TOOLS_MAP.md" class="btn btn-secondary">خريطة المعمارية</a>
+              <button class="btn btn-ghost btn-lg" onclick="navigateTo('activity')">
+                آخر النشاط
+              </button>
             </div>
+            <dl class="hero-stats" aria-label="إحصاءات سريعة">
+              <div class="hero-stat">
+                <dt class="hero-stat-label">إجمالي</dt>
+                <dd class="hero-stat-value" id="statTotalTools">—</dd>
+              </div>
+              <div class="hero-stat">
+                <dt class="hero-stat-label">مفعّلة</dt>
+                <dd class="hero-stat-value" id="statEnabledTools">—</dd>
+              </div>
+              <div class="hero-stat">
+                <dt class="hero-stat-label">فئات</dt>
+                <dd class="hero-stat-value" id="statCategories">—</dd>
+              </div>
+              <div class="hero-stat">
+                <dt class="hero-stat-label">مفضلة</dt>
+                <dd class="hero-stat-value" id="statFavorites">0</dd>
+              </div>
+            </dl>
           </div>
-          <div class="dash-welcome-visual">
-            <svg viewBox="0 0 200 200" fill="none" id="welcomeRing">
-              <circle cx="100" cy="100" r="90" stroke="#EFEDE2" stroke-width="4"/>
-              <circle cx="100" cy="100" r="90" stroke="#00C17A" stroke-width="4" stroke-linecap="round" stroke-dasharray="565.48" stroke-dashoffset="141.37" transform="rotate(-90 100 100)" opacity="0.3"/>
-              <circle cx="100" cy="100" r="60" stroke="#EFEDE2" stroke-width="3"/>
-              <circle cx="100" cy="100" r="60" stroke="#00C17A" stroke-width="3" stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="94.25" transform="rotate(-90 100 100)" opacity="0.5"/>
-              <text id="welcomeRingCount" x="100" y="95" text-anchor="middle" font-size="40" font-weight="900" fill="#000" font-family="var(--font-display)">6</text>
-              <text x="100" y="118" text-anchor="middle" font-size="12" font-weight="600" fill="#777" font-family="var(--font-ui)">أداة متاحة</text>
-            </svg>
-          </div>
-        </div>
+        </section>
 
-        <!-- Quick Stats Row -->
-        <div class="dash-stats-row">
-          <div class="dash-stat-card">
-            <div class="dash-stat-icon" style="background:rgba(0,193,122,0.1);color:#00C17A;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-            </div>
-            <div class="dash-stat-info">
-              <span class="dash-stat-value" id="statTotalTools">—</span>
-              <span class="dash-stat-label">إجمالي الأدوات</span>
-            </div>
-          </div>
-          <div class="dash-stat-card">
-            <div class="dash-stat-icon" style="background:rgba(0,114,249,0.1);color:#0072F9;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
-            </div>
-            <div class="dash-stat-info">
-              <span class="dash-stat-value" id="statEnabledTools">—</span>
-              <span class="dash-stat-label">أدوات مفعّلة</span>
-            </div>
-          </div>
-          <div class="dash-stat-card">
-            <div class="dash-stat-icon" style="background:rgba(255,188,10,0.15);color:#FFBC0A;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-            </div>
-            <div class="dash-stat-info">
-              <span class="dash-stat-value" id="statFavorites">0</span>
-              <span class="dash-stat-label">المفضلة</span>
-            </div>
-          </div>
-          <div class="dash-stat-card">
-            <div class="dash-stat-icon" style="background:rgba(255,145,114,0.15);color:#FF9172;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            </div>
-            <div class="dash-stat-info">
-              <span class="dash-stat-value" id="statCategories">—</span>
-              <span class="dash-stat-label">فئات</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Tools Section -->
-        <div class="dash-section">
-          <div class="dash-section-header">
-            <h3 class="dash-section-title">الأدوات المتاحة</h3>
-            <span class="dash-section-sub" id="toolsSectionSub">اضغط على أي بطاقة لفتح الأداة</span>
-          </div>
-          <div class="tools-grid" id="toolsGrid">
-            <!-- populated by app.js -->
-          </div>
-        </div>
-
-        <!-- How It Works -->
-        <div class="dash-section">
-          <h3 class="dash-section-title">كيف تعمل اللوحة</h3>
-          <div class="dash-steps-grid">
-            <div class="dash-step-card">
-              <div class="dash-step-num">1</div>
-              <h4 class="dash-step-title">سجّل الدخول</h4>
-              <p class="dash-step-desc">ادخل ببريدك الوظيفي. كل مستخدم يرى الأدوات المسموح له باستخدامها فقط.</p>
-            </div>
-            <div class="dash-step-card">
-              <div class="dash-step-num">2</div>
-              <h4 class="dash-step-title">اختر الأداة</h4>
-              <p class="dash-step-desc">اضغط على أي بطاقة لتنطلق مباشرة إلى الأداة مع تسجيل زيارة آمنة في السجلّ.</p>
-            </div>
-            <div class="dash-step-card">
-              <div class="dash-step-num">3</div>
-              <h4 class="dash-step-title">ثبّت المفضلة</h4>
-              <p class="dash-step-desc">ضع الأدوات الأكثر استخدامًا في المفضلة لوصول أسرع في زياراتك القادمة.</p>
-            </div>
-            <div class="dash-step-card">
-              <div class="dash-step-num">4</div>
-              <h4 class="dash-step-title">أدوات جديدة</h4>
-              <p class="dash-step-desc">كل أداة جديدة تُضاف من لوحة Supabase تظهر هنا تلقائيًا دون أي تعديل على الكود.</p>
-            </div>
-          </div>
-        </div>
+        <!-- ── Launcher ── -->
+        <section class="launcher">
+          <header class="launcher-header">
+            <h2 class="launcher-title">الأدوات</h2>
+            <p class="launcher-sub" id="toolsSectionSub">اضغط لفتح الأداة داخل هذه النافذة.</p>
+          </header>
+          <div class="launcher-grid tools-grid" id="toolsGrid"><!-- populated by app.js --></div>
+        </section>
 
       </div>
     </div>
