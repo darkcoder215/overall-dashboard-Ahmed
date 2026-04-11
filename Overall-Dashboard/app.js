@@ -338,11 +338,40 @@ function loadTheme() {
 }
 
 // ── Rendering ────────────────────────────────────────────────────
+// Cache the tool list fingerprint so we only re-paint the grids when
+// the underlying data actually changed. Without this, `renderAll()`
+// is called three times during bootstrap (static → auth → supabase
+// refresh) and each call wipes `.innerHTML` mid-animation — the user
+// sees a flash and the cascade entrance restarts or never finishes.
+let __lastToolsFingerprint = '';
+function toolsFingerprint() {
+  // Include fields that affect rendering. Order matches how the grid
+  // is displayed, so any meaningful change invalidates the fingerprint.
+  return state.tools
+    .map(t => `${t.id || t.slug}|${t.enabled ? 1 : 0}|${t.name_ar}|${t.position ?? ''}`)
+    .join('~') + '::' + [...state.favorites].sort().join(',');
+}
+
 function renderAll() {
   // Reset the card stagger counter so each full render sends the cascade
   // from the first card again instead of continuing an ever-growing delay.
   resetCardStagger();
   renderStats();
+
+  const fp = toolsFingerprint();
+  if (fp !== __lastToolsFingerprint) {
+    __lastToolsFingerprint = fp;
+    renderHomeToolsGrid();
+    renderAllToolsView();
+    renderFavoritesView();
+  }
+}
+
+// Force a re-render of the grids regardless of fingerprint (used when
+// the visible filter/search changes without the underlying data).
+function forceRenderGrids() {
+  resetCardStagger();
+  __lastToolsFingerprint = toolsFingerprint();
   renderHomeToolsGrid();
   renderAllToolsView();
   renderFavoritesView();

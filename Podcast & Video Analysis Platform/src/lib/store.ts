@@ -1,7 +1,9 @@
 import { Podcast, Scene, SceneMetrics, ChatMessage, SearchResult, SceneMetadata, PodcastData, PipelineStatus, EmbeddingVector } from '@/types';
+import { supabase, isSupabaseConfigured } from './supabase';
 
-// In-memory store for demo purposes
-// In production, replace with Supabase or similar
+// In-memory store, hydrated from Supabase on first browser render.
+// Demo data below still ships in the bundle so the tool is usable
+// even when the DB is empty or unreachable.
 
 const defaultMetrics: SceneMetrics = {
   minDuration: 30,
@@ -656,7 +658,128 @@ class Store {
   hasEmbeddings(): boolean {
     return this.embeddings.size > 0;
   }
+
+  // ─── Supabase hydration ──────────────────────────────────────────
+  // Pull podcasts + scenes from the `podcast_video` schema and merge
+  // them into the in-memory store. DB rows win for matching IDs; demo
+  // data stays as a fallback for anything the DB doesn't know about.
+  // The function is idempotent and safe to call multiple times.
+  private hydratePromise: Promise<void> | null = null;
+
+  hydrateFromSupabase(): Promise<void> {
+    if (this.hydratePromise) return this.hydratePromise;
+    if (!isSupabaseConfigured || !supabase) {
+      this.hydratePromise = Promise.resolve();
+      return this.hydratePromise;
+    }
+    this.hydratePromise = (async () => {
+      try {
+        const { data: podRows, error: podErr } = await supabase!
+          .schema('podcast_video')
+          .from('podcasts')
+          .select('*')
+          .order('upload_date', { ascending: false });
+        if (podErr) throw podErr;
+        if (!podRows || podRows.length === 0) return;
+
+        // Merge podcasts: replace existing by id, prepend new ones.
+        for (const row of podRows as Record<string, unknown>[]) {
+          const podcast: Podcast = {
+            id: String(row.id),
+            title: String(row.title || ''),
+            description: String(row.description || ''),
+            duration: String(row.duration || ''),
+            uploadDate: String(row.upload_date || ''),
+            status: (row.status || 'ready') as Podcast['status'],
+            thumbnailUrl: row.thumbnail_url ? String(row.thumbnail_url) : undefined,
+            scenesCount: Number(row.scenes_count) || 0,
+            source: (row.source || 'upload') as Podcast['source'],
+          };
+          const idx = this.podcasts.findIndex((p) => p.id === podcast.id);
+          if (idx >= 0) this.podcasts[idx] = podcast;
+          else this.podcasts.unshift(podcast);
+
+          // Hydrate enriched PodcastData if present.
+          const existingData = this.podcastData.get(podcast.id) || {};
+          this.podcastData.set(podcast.id, {
+            ...existingData,
+            rawTranscript: row.raw_transcript
+              ? String(row.raw_transcript)
+              : existingData.rawTranscript,
+            mainThemes: Array.isArray(row.main_themes)
+              ? (row.main_themes as string[])
+              : existingData.mainThemes,
+            keyTakeaways: Array.isArray(row.key_takeaways)
+              ? (row.key_takeaways as string[])
+              : existingData.keyTakeaways,
+            enrichedDescription: row.enriched_description
+              ? String(row.enriched_description)
+              : existingData.enrichedDescription,
+          });
+
+          if (row.pipeline_status && typeof row.pipeline_status === 'object') {
+            this.pipelineStatus.set(
+              podcast.id,
+              row.pipeline_status as PipelineStatus
+            );
+          }
+          if (row.scene_metrics && typeof row.scene_metrics === 'object') {
+            this.podcastMetrics.set(
+              podcast.id,
+              row.scene_metrics as SceneMetrics
+            );
+          }
+        }
+
+        // Pull scenes for every podcast the DB knows about.
+        const ids = (podRows as Record<string, unknown>[]).map((r) => String(r.id));
+        const { data: sceneRows, error: scnErr } = await supabase!
+          .schema('podcast_video')
+          .from('scenes')
+          .select('*')
+          .in('podcast_id', ids);
+        if (scnErr) throw scnErr;
+
+        const byPodcast = new Map<string, Scene[]>();
+        for (const s of (sceneRows || []) as Record<string, unknown>[]) {
+          const pid = String(s.podcast_id);
+          const list = byPodcast.get(pid) || [];
+          list.push({
+            id: String(s.id),
+            podcastId: pid,
+            title: String(s.title || ''),
+            startTime: String(s.start_time || ''),
+            endTime: String(s.end_time || ''),
+            content: String(s.content || ''),
+            summary: String(s.summary || ''),
+            topics: Array.isArray(s.topics) ? (s.topics as string[]) : [],
+            mood: String(s.mood || ''),
+            order: Number(s.order) || 0,
+          });
+          if (s.metadata && typeof s.metadata === 'object') {
+            this.sceneMetadata.set(String(s.id), s.metadata as SceneMetadata);
+          }
+          byPodcast.set(pid, list);
+        }
+        byPodcast.forEach((list, pid) => {
+          list.sort((a, b) => a.order - b.order);
+          this.scenes.set(pid, list);
+        });
+      } catch (err) {
+        // Silent fallback — keep the demo data visible.
+        // eslint-disable-next-line no-console
+        console.warn('[podcast-video] Supabase hydrate skipped:', err);
+      }
+    })();
+    return this.hydratePromise;
+  }
 }
 
 export const store = new Store();
+
+// Kick off the hydrate in the browser so every page mounts with the
+// freshest DB copy without blocking the initial render.
+if (typeof window !== 'undefined') {
+  store.hydrateFromSupabase();
+}
 export { defaultMetrics };

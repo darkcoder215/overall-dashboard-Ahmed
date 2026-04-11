@@ -906,8 +906,11 @@ img { max-width: 100%; height: auto; }
   padding: var(--space-10) var(--space-8);
   box-shadow: var(--shadow-sm);
   animation: fadeInUp 0.5s ease-out;
+  flex-wrap: wrap;
 }
-.dash-welcome-text { flex: 1; }
+/* `min-width: 0` lets the flex child shrink below its intrinsic text width
+   instead of forcing the visual off the edge and cramping the whole card. */
+.dash-welcome-text { flex: 1 1 320px; min-width: 0; }
 .dash-welcome-title {
   font-family: var(--font-display); font-weight: 900;
   font-size: 32px; margin-bottom: var(--space-3);
@@ -918,8 +921,17 @@ img { max-width: 100%; height: auto; }
   margin-bottom: var(--space-6);
 }
 .dash-welcome-actions { display: flex; gap: var(--space-3); flex-wrap: wrap; }
-.dash-welcome-visual { flex-shrink: 0; width: 180px; height: 180px; }
-.dash-welcome-visual svg { width: 100%; height: 100%; }
+.dash-welcome-visual {
+  flex-shrink: 0;
+  width: 180px; height: 180px;
+  max-width: 100%;
+  display: flex; align-items: center; justify-content: center;
+}
+.dash-welcome-visual svg {
+  width: 100%; height: 100%;
+  max-width: 180px; max-height: 180px;
+  display: block;
+}
 
 /* Quick Stats Row */
 .dash-stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
@@ -1287,6 +1299,18 @@ img { max-width: 100%; height: auto; }
    RESPONSIVE — NEW PAGES
    ════════════════════════════════════════════════════════════════ */
 @media (max-width: 1024px) {
+  /* Collapse welcome to a column at this breakpoint too — the sidebar
+     slides off here, and the iframe host still tends to be narrow
+     enough that keeping the 180px visual beside wrapped text pushes
+     the SVG out of its box and the description into a cramped ribbon. */
+  .dash-welcome {
+    flex-direction: column; text-align: center;
+    padding: var(--space-8) var(--space-6);
+    gap: var(--space-6);
+  }
+  .dash-welcome-text { flex: 1 1 auto; width: 100%; }
+  .dash-welcome-actions { justify-content: center; }
+  .dash-welcome-visual { width: 160px; height: 160px; }
   .dash-stats-row { grid-template-columns: repeat(2, 1fr); }
   .dash-steps-grid { grid-template-columns: repeat(2, 1fr); }
   .dash-features-grid { grid-template-columns: repeat(2, 1fr); }
@@ -1296,8 +1320,7 @@ img { max-width: 100%; height: auto; }
 }
 
 @media (max-width: 768px) {
-  .dash-welcome { flex-direction: column; text-align: center; padding: var(--space-6); }
-  .dash-welcome-actions { justify-content: center; }
+  .dash-welcome { padding: var(--space-6); }
   .dash-welcome-visual { width: 140px; height: 140px; }
   .dash-stats-row { grid-template-columns: 1fr 1fr; }
   .dash-steps-grid { grid-template-columns: 1fr; }

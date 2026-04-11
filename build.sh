@@ -293,6 +293,23 @@ copy_static_tool \
 export VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY
 log "Using VITE_SUPABASE_URL=$VITE_SUPABASE_URL"
 
+# =====================================================================
+# Shared Supabase credentials for Next.js tools
+#
+# HR Approval, Podcast & Video, and Feedback Platform are Next.js apps
+# that read `process.env.NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` at build
+# time and inline the string literals into the static bundle. Without
+# these exports the compiled code falls through to the hard-coded
+# fallbacks inside each tool's `src/lib/supabase.ts` (which point at the
+# same unified Thmanyah project, so nothing breaks — but wiring them
+# through build.sh means a single Vercel env-var override flips every
+# Next tool at once).
+# =====================================================================
+: "${NEXT_PUBLIC_SUPABASE_URL:=https://hbnvbfcwrfanpayxulih.supabase.co}"
+: "${NEXT_PUBLIC_SUPABASE_ANON_KEY:=sb_publishable_P_AoE0x-HsqrJTarwZOT7Q_0UE2trZv}"
+export NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY
+log "Using NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL"
+
 BASE_PATH="/chatbot/" \
 VITE_BASE_PATH="/chatbot/" \
   build_tool \

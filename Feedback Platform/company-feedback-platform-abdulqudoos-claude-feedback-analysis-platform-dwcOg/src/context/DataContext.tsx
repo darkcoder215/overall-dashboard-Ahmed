@@ -1,9 +1,10 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { PlatformData, CleanedData, DataQualityReport } from '@/lib/types';
+import { PlatformData, CleanedData, DataQualityReport, Employee } from '@/lib/types';
 import { parseFile, parseBuffer } from '@/lib/parser';
 import { cleanPlatformData } from '@/lib/data-cleaning';
+import { supabase, isSupabaseConfigured } from '@/lib/supabase';
 
 interface DataContextType {
   data: PlatformData;
@@ -24,6 +25,59 @@ const DATA_FILES = [
   '/data/ananas.xlsx',
   '/data/leaders.xlsx',
 ];
+
+// ── Supabase hydration ─────────────────────────────────────────────
+// Pull the employees directory from the unified Thmanyah `feedback`
+// schema and merge it onto whatever was loaded from the static CSVs.
+// Rows from Supabase win for matching ids. If the DB is empty or
+// unreachable the CSV copy stays untouched, so the tool keeps working
+// offline and during fresh deploys that haven't been seeded yet.
+async function hydrateEmployeesFromSupabase(): Promise<Employee[] | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  try {
+    const { data, error } = await supabase
+      .schema('feedback')
+      .from('employees')
+      .select('*');
+    if (error) throw error;
+    if (!data || data.length === 0) return null;
+
+    return (data as Record<string, unknown>[]).map((row) => ({
+      id: String(row.id || ''),
+      name: String(row.name || ''),
+      preferredName: String(row.preferred_name || ''),
+      department: String(row.department || ''),
+      team: String(row.team || ''),
+      level: Number(row.level) || 0,
+      jobTitleAr: String(row.job_title_ar || ''),
+      jobTitleEn: String(row.job_title_en || ''),
+      manager: String(row.manager || ''),
+      office: String(row.office || ''),
+      startDate: row.start_date ? String(row.start_date) : '',
+      currentLocation: String(row.current_location || ''),
+      workType: String(row.work_type || ''),
+      inProbation: Boolean(row.in_probation),
+      lastPromotionDate: row.last_promotion_date ? String(row.last_promotion_date) : '',
+      serviceMonths: Number(row.service_months) || 0,
+      serviceYears: Number(row.service_years) || 0,
+      currentContract: String(row.current_contract || ''),
+      contractDaysRemaining: Number(row.contract_days_remaining) || 0,
+      contractEndDate: row.contract_end_date ? String(row.contract_end_date) : '',
+      isLeader: Boolean(row.is_leader),
+      overallRating: String(row.overall_rating || ''),
+      gender: String(row.gender || ''),
+      nationality: String(row.nationality || ''),
+      birthDate: row.birth_date ? String(row.birth_date) : '',
+      age: Number(row.age) || 0,
+      phone: String(row.phone || ''),
+      workEmail: String(row.work_email || ''),
+      personalEmail: String(row.personal_email || ''),
+    }));
+  } catch (err) {
+    console.warn('[feedback-platform] Supabase employee hydrate skipped:', err);
+    return null;
+  }
+}
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const [data, setData] = useState<PlatformData>({ employees: [], evaluations: [], reviews: [], leaders: [], stationMeetings: [], retentionFlags: [], leaderAnalyses: [] });
@@ -61,6 +115,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // Skip files that fail to load
         }
+      }
+
+      // Merge Supabase employees on top of CSV employees. Any DB row
+      // with a matching id replaces the CSV copy; brand-new DB rows
+      // are appended. If the DB has nothing, the CSV copy stands.
+      const dbEmployees = await hydrateEmployeesFromSupabase();
+      if (dbEmployees && dbEmployees.length > 0) {
+        const byId = new Map(newData.employees.map((e) => [e.id, e]));
+        for (const e of dbEmployees) byId.set(e.id, e);
+        newData.employees = Array.from(byId.values());
       }
 
       if (!cancelled) {
