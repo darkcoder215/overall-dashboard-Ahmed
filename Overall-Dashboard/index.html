@@ -76,17 +76,28 @@
       <div class="top-bar-content">
         <h1 class="page-title" id="pageTitle">الرئيسية</h1>
         <div class="top-bar-actions">
-          <button class="btn btn-secondary btn-sm" onclick="refreshTools()">
+          <button class="btn btn-secondary btn-sm" id="reloadFrameBtn" onclick="reloadActiveTab()" hidden>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+            <span>إعادة تحميل</span>
+          </button>
+          <a class="btn btn-secondary btn-sm" id="openInNewTabBtn" href="#" target="_blank" rel="noopener" hidden>
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <span>فتح في نافذة</span>
+          </a>
+          <button class="btn btn-secondary btn-sm" id="refreshToolsBtn" onclick="refreshTools()">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
             <span>تحديث</span>
           </button>
-          <a class="btn btn-primary btn-sm" href="#tools" onclick="navigateTo('tools')">
+          <a class="btn btn-primary btn-sm" id="browseToolsBtn" href="#tools" onclick="navigateTo('tools')">
             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
             <span>استعراض الأدوات</span>
           </a>
         </div>
       </div>
     </header>
+
+    <!-- ═══════════ TABS STRIP (open tool tabs) ═══════════ -->
+    <div class="tabs-strip" id="tabsStrip" hidden></div>
 
     <!-- ═══════════ VIEW: HOME ═══════════ -->
     <div class="view view-home view-active" data-view="home">
@@ -245,6 +256,13 @@
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: TOOL (iframe) ═══════════ -->
+    <div class="view" data-view="tool">
+      <div class="tabs-frames" id="tabsFrames">
+        <div class="tab-frame-empty" id="tabsFramesEmpty">اختر أداة من الشاشة الرئيسية لفتحها هنا.</div>
       </div>
     </div>
 

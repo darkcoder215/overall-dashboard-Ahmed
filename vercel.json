@@ -1,0 +1,40 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "cleanUrls": false,
+  "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/",
+      "destination": "/Overall-Dashboard/index.html"
+    },
+    {
+      "source": "/commentator",
+      "destination": "/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/index.html"
+    },
+    {
+      "source": "/commentator/(.*)",
+      "destination": "/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/$1"
+    },
+    {
+      "source": "/dashboard/(.*)",
+      "destination": "/Overall-Dashboard/$1"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "X-Content-Type-Options", "value": "nosniff" },
+        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy", "value": "geolocation=(self), microphone=(self), camera=(self)" }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(otf|ttf|woff|woff2)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
+}

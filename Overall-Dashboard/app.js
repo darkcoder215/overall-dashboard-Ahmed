@@ -19,6 +19,11 @@ const state = {
   searchQuery: '',
   activeCategory: 'all',
   connectionOk: false,
+  // In-place tool tabs (each entry: { slug, tool, frameEl, pillEl })
+  tabs: [],
+  activeTabSlug: null,
+  // Remembers the last non-tool view so we can return there when all tabs close.
+  lastNonToolView: 'home',
 };
 
 // ── Init ─────────────────────────────────────────────────────────
@@ -134,13 +139,19 @@ function attachNavListeners() {
 }
 
 window.navigateTo = function navigateTo(view) {
+  // Guard: 'tool' view only makes sense when there's at least one open tab.
+  if (view === 'tool' && state.tabs.length === 0) view = 'home';
+
   state.currentView = view;
+  if (view !== 'tool') state.lastNonToolView = view;
+
   document.querySelectorAll('.view').forEach(v => {
     v.classList.toggle('view-active', v.dataset.view === view);
   });
   document.querySelectorAll('.nav-item[data-view]').forEach(el => {
     el.classList.toggle('active', el.dataset.view === view);
   });
+
   const titles = {
     home: 'الرئيسية',
     tools: 'كل الأدوات',
@@ -148,11 +159,156 @@ window.navigateTo = function navigateTo(view) {
     activity: 'النشاط',
     settings: 'الإعدادات',
   };
-  document.getElementById('pageTitle').textContent = titles[view] || '';
+  let title = titles[view] || '';
+  if (view === 'tool') {
+    const tab = state.tabs.find(t => t.slug === state.activeTabSlug);
+    title = tab?.tool.name_ar || 'أداة';
+  }
+  document.getElementById('pageTitle').textContent = title;
+
+  updateTopBarActions();
   renderAll();
 
   // Close mobile sidebar when navigating.
   document.getElementById('sidebar').classList.remove('open');
+};
+
+// ── Tool tabs (in-place iframe) ──────────────────────────────────
+function resolveToolUrl(tool) {
+  if (!tool) return '#';
+  const overrides = (CONFIG && CONFIG.TOOL_URLS) || {};
+  return overrides[tool.slug] || tool.url || '#';
+}
+
+function openToolInTab(tool) {
+  if (!tool || tool.enabled === false) return;
+  logToolOpen(tool);
+
+  const slug = tool.slug || tool.id || tool.name_en;
+  const existing = state.tabs.find(t => t.slug === slug);
+  if (existing) {
+    activateTab(slug);
+    window.navigateTo('tool');
+    return;
+  }
+
+  const framesMount = document.getElementById('tabsFrames');
+  const emptyPlaceholder = document.getElementById('tabsFramesEmpty');
+  if (emptyPlaceholder) emptyPlaceholder.hidden = true;
+
+  // Build iframe
+  const frame = document.createElement('iframe');
+  frame.className = 'tab-frame';
+  frame.src = resolveToolUrl(tool);
+  frame.title = tool.name_ar || tool.name_en || 'أداة';
+  frame.setAttribute(
+    'allow',
+    'clipboard-read; clipboard-write; microphone; camera; fullscreen; autoplay; geolocation; encrypted-media'
+  );
+  frame.setAttribute(
+    'sandbox',
+    'allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts allow-downloads allow-pointer-lock'
+  );
+  frame.setAttribute('loading', 'lazy');
+  frame.setAttribute('referrerpolicy', 'no-referrer-when-downgrade');
+  framesMount.appendChild(frame);
+
+  // Build pill
+  const iconSvg = ICONS[tool.icon] || ICONS['layout-grid'];
+  const pill = document.createElement('div');
+  pill.className = 'tab-pill';
+  pill.setAttribute('role', 'tab');
+  pill.setAttribute('aria-label', tool.name_ar || tool.name_en);
+  pill.innerHTML = `
+    <span class="tab-pill-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${iconSvg}</svg>
+    </span>
+    <span class="tab-pill-label">${escapeHtml(tool.name_ar || tool.name_en)}</span>
+    <button class="tab-pill-close" data-close aria-label="إغلاق">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    </button>
+  `;
+  pill.addEventListener('click', (e) => {
+    if (e.target.closest('[data-close]')) {
+      e.stopPropagation();
+      closeTab(slug);
+      return;
+    }
+    activateTab(slug);
+    window.navigateTo('tool');
+  });
+  document.getElementById('tabsStrip').appendChild(pill);
+
+  state.tabs.push({ slug, tool, frameEl: frame, pillEl: pill });
+  activateTab(slug);
+  updateTabsStripVisibility();
+  window.navigateTo('tool');
+}
+
+function activateTab(slug) {
+  state.activeTabSlug = slug;
+  state.tabs.forEach(t => {
+    t.frameEl.classList.toggle('active', t.slug === slug);
+    t.pillEl.classList.toggle('active', t.slug === slug);
+  });
+  // Scroll pill into view on small screens.
+  const active = state.tabs.find(t => t.slug === slug);
+  if (active?.pillEl?.scrollIntoView) {
+    active.pillEl.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  }
+}
+
+function closeTab(slug) {
+  const idx = state.tabs.findIndex(t => t.slug === slug);
+  if (idx === -1) return;
+  const tab = state.tabs[idx];
+  tab.frameEl.remove();
+  tab.pillEl.remove();
+  state.tabs.splice(idx, 1);
+
+  if (state.activeTabSlug === slug) {
+    const next = state.tabs[idx] || state.tabs[idx - 1];
+    if (next) {
+      activateTab(next.slug);
+      window.navigateTo('tool');
+    } else {
+      state.activeTabSlug = null;
+      const empty = document.getElementById('tabsFramesEmpty');
+      if (empty) empty.hidden = false;
+      window.navigateTo(state.lastNonToolView || 'home');
+    }
+  }
+  updateTabsStripVisibility();
+}
+
+function updateTabsStripVisibility() {
+  const strip = document.getElementById('tabsStrip');
+  if (strip) strip.hidden = state.tabs.length === 0;
+}
+
+function updateTopBarActions() {
+  const isTool = state.currentView === 'tool';
+  const reload = document.getElementById('reloadFrameBtn');
+  const openNew = document.getElementById('openInNewTabBtn');
+  const refresh = document.getElementById('refreshToolsBtn');
+  const browse = document.getElementById('browseToolsBtn');
+  if (reload) reload.hidden = !isTool;
+  if (openNew) openNew.hidden = !isTool;
+  if (refresh) refresh.hidden = isTool;
+  if (browse) browse.hidden = isTool;
+  if (isTool && openNew) {
+    const tab = state.tabs.find(t => t.slug === state.activeTabSlug);
+    openNew.href = tab ? resolveToolUrl(tab.tool) : '#';
+  }
+}
+
+window.reloadActiveTab = function reloadActiveTab() {
+  const tab = state.tabs.find(t => t.slug === state.activeTabSlug);
+  if (!tab) return;
+  // Re-assign src to force a reload (survives cross-origin restrictions).
+  const url = tab.frameEl.src;
+  tab.frameEl.src = 'about:blank';
+  requestAnimationFrame(() => { tab.frameEl.src = url; });
 };
 
 window.toggleSidebar = function toggleSidebar() {
@@ -287,12 +443,7 @@ function buildToolCard(tool) {
     toggleFavorite(tool);
   });
 
-  const open = (e) => {
-    if (tool.enabled === false) return;
-    logToolOpen(tool);
-    // Open in a new tab so the dashboard stays mounted.
-    window.open(tool.url, '_blank', 'noopener,noreferrer');
-  };
+  const open = (e) => openToolInTab(tool);
   card.addEventListener('click', open);
   card.addEventListener('keydown', (e) => {
     if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(e); }
