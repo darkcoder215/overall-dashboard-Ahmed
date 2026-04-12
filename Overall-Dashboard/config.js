@@ -30,5 +30,6 @@ window.DASHBOARD_CONFIG = {
     'podcast-video':     '/podcast-video/',
     'hr-approval':       '/hr-approval/',
     'feedback-platform': '/feedback-platform/',
+    'cv-analysis':       '/cv-analysis/',
   },
 };

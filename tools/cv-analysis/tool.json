@@ -1,0 +1,11 @@
+{
+  "slug": "cv-analysis",
+  "name": "CV Analysis",
+  "nameAr": "تحليل المرشحين",
+  "type": "next",
+  "sourceDir": ".",
+  "dist": "out",
+  "buildCmd": "npm run build",
+  "basePath": "/cv-analysis",
+  "hideApi": true
+}

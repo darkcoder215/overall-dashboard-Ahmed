@@ -68,6 +68,17 @@ export const STATIC_TOOLS = [
     enabled: true,
     position: 60,
   },
+  {
+    slug: 'cv-analysis',
+    name_ar: 'تحليل المرشحين',
+    name_en: 'CV & Video Analysis',
+    description_ar: 'تحليل السير الذاتية ومقاطع الفيديو التعريفية للمرشحين بالذكاء الاصطناعي مع تقييم شامل ومتعدد الأبعاد.',
+    category: 'hr',
+    icon: 'user-search',
+    url: '/cv-analysis/',
+    enabled: true,
+    position: 70,
+  },
 ];
 
 // Map of Lucide icon name → inline SVG path markup. Only the icons the
@@ -81,6 +92,7 @@ export const ICONS = {
   'clipboard-check': `<path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/><path d="M9 14l2 2 4-4"/>`,
   'bar-chart-3': `<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>`,
   'layout-grid': `<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>`,
+  'user-search': `<circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/>`,
 };
 
 export const CATEGORY_LABELS = {
@@ -102,4 +114,5 @@ export const TOOL_ACCENTS = {
   'podcast-video':      'red',
   'hr-approval':        'green',
   'feedback-platform':  'charcoal',
+  'cv-analysis':        'green',
 };
