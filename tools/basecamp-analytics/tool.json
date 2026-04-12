@@ -1,0 +1,10 @@
+{
+  "slug": "basecamp-analytics",
+  "name": "Basecamp Analytics",
+  "nameAr": "تحليلات بيسكامب",
+  "type": "static",
+  "sourceDir": ".",
+  "dist": "",
+  "buildCmd": "",
+  "basePath": "/basecamp-analytics/"
+}

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تحليلات بيسكامب — ثمانية</title>
+  <meta name="description" content="تتبّع وتحليل نشاط أعضاء الفريق في بيسكامب">
+  <link rel="icon" type="image/png" href="/fonts/thamanyah.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <!-- ═══════════ SIDEBAR ═══════════ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <img src="/fonts/thamanyah.png" alt="ثمانية" class="sidebar-logo">
+      <span class="sidebar-brand">تحليلات بيسكامب</span>
+    </div>
+
+    <nav class="sidebar-nav">
+      <a href="#dashboard" class="nav-item active" data-view="dashboard">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>لوحة البيانات</span>
+      </a>
+      <a href="#members" class="nav-item" data-view="members">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>الأعضاء</span>
+      </a>
+      <a href="#projects" class="nav-item" data-view="projects">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+        <span>المشاريع</span>
+      </a>
+      <a href="#activity" class="nav-item" data-view="activity">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        <span>النشاط</span>
+      </a>
+      <a href="#settings" class="nav-item" data-view="settings">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        <span>الإعدادات</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sidebar-sync-status" id="syncStatus">
+        <div class="sync-dot"></div>
+        <span class="sync-text">غير متصل</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════ MOBILE HEADER ═══════════ -->
+  <header class="mobile-header" id="mobileHeader">
+    <button class="menu-toggle" id="menuToggle" aria-label="القائمة" onclick="toggleSidebar()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+    </button>
+    <span class="mobile-title" id="mobileTitle">تحليلات بيسكامب</span>
+  </header>
+
+  <!-- ═══════════ MAIN CONTENT ═══════════ -->
+  <main class="main-content" id="mainContent">
+
+    <!-- ── LOADING OVERLAY ── -->
+    <div class="loading-overlay" id="loadingOverlay" hidden>
+      <div class="loading-spinner"></div>
+      <p class="loading-text" id="loadingText">جارٍ التحميل...</p>
+    </div>
+
+    <!-- ═══════════ VIEW: DASHBOARD ═══════════ -->
+    <div class="view view-active" data-view="dashboard">
+      <div class="content-scroll">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">لوحة البيانات</h1>
+            <p class="page-sub">نظرة عامة على نشاط الفريق في بيسكامب</p>
+          </div>
+          <div class="page-actions">
+            <button class="btn btn-accent btn-sm" id="syncBtn" onclick="startSync()">
+              <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              مزامنة البيانات
+            </button>
+          </div>
+        </div>
+
+        <!-- ── Stats Cards ── -->
+        <div class="stats-grid" id="statsGrid">
+          <div class="stat-card" data-accent="teal">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="statMembers">—</span>
+              <span class="stat-label">إجمالي الأعضاء</span>
+            </div>
+          </div>
+          <div class="stat-card" data-accent="green">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="statActive">—</span>
+              <span class="stat-label">نشط هذا الأسبوع</span>
+            </div>
+          </div>
+          <div class="stat-card" data-accent="blue">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="statProjects">—</span>
+              <span class="stat-label">مشاريع نشطة</span>
+            </div>
+          </div>
+          <div class="stat-card" data-accent="amber">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="statTodos">—</span>
+              <span class="stat-label">مهام مكتملة</span>
+            </div>
+          </div>
+          <div class="stat-card" data-accent="peach">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="statMessages">—</span>
+              <span class="stat-label">رسائل ومحادثات</span>
+            </div>
+          </div>
+          <div class="stat-card" data-accent="red">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div class="stat-body">
+              <span class="stat-value" id="statDocs">—</span>
+              <span class="stat-label">مستندات وملفات</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Top Active Members ── -->
+        <div class="section-grid">
+          <section class="card">
+            <div class="card-header">
+              <h2 class="card-title">الأكثر نشاطًا</h2>
+              <span class="card-badge">هذا الشهر</span>
+            </div>
+            <div class="card-body" id="topActiveList">
+              <div class="empty-state-sm">
+                <p>قم بمزامنة البيانات لعرض أنشط الأعضاء</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Recent Activity ── -->
+          <section class="card">
+            <div class="card-header">
+              <h2 class="card-title">آخر النشاط</h2>
+              <a href="#activity" class="card-link" onclick="navigateTo('activity')">عرض الكل</a>
+            </div>
+            <div class="card-body" id="recentActivityList">
+              <div class="empty-state-sm">
+                <p>قم بمزامنة البيانات لعرض النشاط</p>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- ── Activity Chart ── -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">نشاط الفريق — آخر 30 يومًا</h2>
+          </div>
+          <div class="card-body">
+            <div class="chart-container" id="activityChart">
+              <div class="empty-state-sm">
+                <p>قم بمزامنة البيانات لعرض الرسم البياني</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ── Projects Overview ── -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">المشاريع الأكثر نشاطًا</h2>
+            <a href="#projects" class="card-link" onclick="navigateTo('projects')">عرض الكل</a>
+          </div>
+          <div class="card-body" id="topProjectsList">
+            <div class="empty-state-sm">
+              <p>قم بمزامنة البيانات لعرض المشاريع</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: MEMBERS ═══════════ -->
+    <div class="view" data-view="members">
+      <div class="content-scroll">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">الأعضاء</h1>
+            <p class="page-sub" id="membersCount">قائمة بجميع أعضاء الفريق في بيسكامب</p>
+          </div>
+          <div class="page-actions">
+            <input type="search" class="search-input" id="memberSearch" placeholder="ابحث بالاسم أو البريد...">
+          </div>
+        </div>
+
+        <div class="filter-chips" id="memberFilters">
+          <button class="chip chip-active" data-filter="all">الكل</button>
+          <button class="chip" data-filter="admin">المدراء</button>
+          <button class="chip" data-filter="employee">الموظفون</button>
+          <button class="chip" data-filter="client">العملاء</button>
+          <button class="chip" data-filter="active">نشط مؤخرًا</button>
+        </div>
+
+        <div class="members-table-wrap">
+          <table class="data-table" id="membersTable">
+            <thead>
+              <tr>
+                <th class="th-sortable" data-sort="name">العضو</th>
+                <th class="th-sortable" data-sort="projects">المشاريع</th>
+                <th class="th-sortable" data-sort="messages">الرسائل</th>
+                <th class="th-sortable" data-sort="todos">المهام</th>
+                <th class="th-sortable" data-sort="comments">التعليقات</th>
+                <th class="th-sortable" data-sort="chat">المحادثات</th>
+                <th class="th-sortable" data-sort="last_active">آخر نشاط</th>
+              </tr>
+            </thead>
+            <tbody id="membersTableBody">
+              <tr><td colspan="7" class="td-empty">قم بمزامنة البيانات لعرض الأعضاء</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: MEMBER DETAIL ═══════════ -->
+    <div class="view" data-view="member-detail">
+      <div class="content-scroll">
+        <div class="page-header">
+          <button class="btn btn-ghost btn-sm" onclick="navigateTo('members')">
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+            العودة للأعضاء
+          </button>
+        </div>
+
+        <!-- Profile Card -->
+        <div class="profile-hero" id="profileHero">
+          <div class="profile-avatar" id="profileAvatar"></div>
+          <div class="profile-info">
+            <h1 class="profile-name" id="profileName">—</h1>
+            <p class="profile-title" id="profileTitle">—</p>
+            <div class="profile-meta">
+              <span class="profile-meta-item" id="profileEmail">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                —
+              </span>
+              <span class="profile-meta-item" id="profileTimezone">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                —
+              </span>
+              <span class="profile-meta-item" id="profileCompany">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14"><path d="M3 21h18M9 8h1M9 12h1M9 16h1M14 8h1M14 12h1M14 16h1M5 21V5a2 2 0 012-2h10a2 2 0 012 2v16"/></svg>
+                —
+              </span>
+            </div>
+            <div class="profile-badges" id="profileBadges"></div>
+          </div>
+        </div>
+
+        <!-- Person Stats -->
+        <div class="person-stats-grid" id="personStatsGrid"></div>
+
+        <!-- Projects the person is in -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">المشاريع</h2>
+          </div>
+          <div class="card-body" id="personProjects">
+            <div class="empty-state-sm"><p>لا توجد بيانات</p></div>
+          </div>
+        </section>
+
+        <!-- Person Activity Timeline -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">سجل النشاط</h2>
+          </div>
+          <div class="card-body" id="personTimeline">
+            <div class="empty-state-sm"><p>لا توجد بيانات</p></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: PROJECTS ═══════════ -->
+    <div class="view" data-view="projects">
+      <div class="content-scroll">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">المشاريع</h1>
+            <p class="page-sub" id="projectsCount">جميع مشاريع بيسكامب</p>
+          </div>
+          <div class="page-actions">
+            <input type="search" class="search-input" id="projectSearch" placeholder="ابحث عن مشروع...">
+          </div>
+        </div>
+
+        <div class="filter-chips" id="projectFilters">
+          <button class="chip chip-active" data-filter="all">الكل</button>
+          <button class="chip" data-filter="active">نشط</button>
+          <button class="chip" data-filter="archived">مؤرشف</button>
+        </div>
+
+        <div class="projects-grid" id="projectsGrid">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+            </svg>
+            <h3>لا توجد مشاريع</h3>
+            <p>قم بمزامنة البيانات من بيسكامب لعرض المشاريع</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: ACTIVITY ═══════════ -->
+    <div class="view" data-view="activity">
+      <div class="content-scroll">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">سجل النشاط</h1>
+            <p class="page-sub">جميع الأحداث والإجراءات في بيسكامب</p>
+          </div>
+          <div class="page-actions">
+            <select class="select-input" id="activityTypeFilter">
+              <option value="all">كل الأنواع</option>
+              <option value="Todo">المهام</option>
+              <option value="Message">الرسائل</option>
+              <option value="Comment">التعليقات</option>
+              <option value="Document">المستندات</option>
+              <option value="Upload">الملفات</option>
+              <option value="Schedule::Entry">الجدول</option>
+              <option value="Question::Answer">الإجابات</option>
+              <option value="Chat::Lines">المحادثات</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="activity-timeline" id="activityTimeline">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+            </svg>
+            <h3>لا يوجد نشاط</h3>
+            <p>قم بمزامنة البيانات لعرض سجل النشاط</p>
+          </div>
+        </div>
+        <div class="load-more-wrap" id="loadMoreWrap" hidden>
+          <button class="btn btn-ghost btn-sm" id="loadMoreBtn" onclick="loadMoreActivity()">تحميل المزيد</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════ VIEW: SETTINGS ═══════════ -->
+    <div class="view" data-view="settings">
+      <div class="content-scroll">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">الإعدادات</h1>
+            <p class="page-sub">إعداد الاتصال ببيسكامب وقاعدة البيانات</p>
+          </div>
+        </div>
+
+        <!-- Connection Status -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">حالة الاتصال</h2>
+          </div>
+          <div class="card-body">
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-label">Supabase</span>
+                <span class="settings-desc" id="settingsSupabaseStatus">جارٍ الفحص...</span>
+              </div>
+              <span class="status-badge" id="supabaseBadge">—</span>
+            </div>
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-label">Basecamp API</span>
+                <span class="settings-desc" id="settingsBasecampStatus">غير مُهيّأ</span>
+              </div>
+              <span class="status-badge" id="basecampBadge">—</span>
+            </div>
+          </div>
+        </section>
+
+        <!-- Basecamp Configuration -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">إعدادات بيسكامب</h2>
+          </div>
+          <div class="card-body">
+            <p class="settings-help">
+              أدخل رمز الوصول (Access Token) الخاص بحساب بيسكامب. يمكنك الحصول عليه من
+              <a href="https://launchpad.37signals.com/integrations" target="_blank" rel="noopener">37signals Launchpad</a>.
+            </p>
+            <form id="basecampForm" onsubmit="return saveBasecampConfig(event)">
+              <label class="field">
+                <span>معرّف الحساب (Account ID)</span>
+                <input type="text" name="account_id" id="bcAccountId" placeholder="مثال: 1234567" required>
+              </label>
+              <label class="field">
+                <span>رمز الوصول (Access Token)</span>
+                <input type="password" name="access_token" id="bcAccessToken" placeholder="Bearer token من Basecamp" required>
+              </label>
+              <div class="form-actions">
+                <button type="submit" class="btn btn-accent btn-sm">حفظ وربط</button>
+                <button type="button" class="btn btn-ghost btn-sm" onclick="testBasecampConnection()">اختبار الاتصال</button>
+              </div>
+              <p class="form-feedback" id="bcFormFeedback" hidden></p>
+            </form>
+          </div>
+        </section>
+
+        <!-- Sync Controls -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">المزامنة</h2>
+          </div>
+          <div class="card-body">
+            <div class="settings-row">
+              <div class="settings-row-info">
+                <span class="settings-label">آخر مزامنة</span>
+                <span class="settings-desc" id="settingsLastSync">لم تتم المزامنة بعد</span>
+              </div>
+              <button class="btn btn-accent btn-sm" onclick="startSync()">مزامنة الآن</button>
+            </div>
+            <div class="sync-progress" id="syncProgress" hidden>
+              <div class="progress-bar">
+                <div class="progress-fill" id="syncProgressFill"></div>
+              </div>
+              <p class="progress-text" id="syncProgressText">جارٍ المزامنة...</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Sync Log -->
+        <section class="card">
+          <div class="card-header">
+            <h2 class="card-title">سجل المزامنة</h2>
+          </div>
+          <div class="card-body" id="syncLogList">
+            <div class="empty-state-sm">
+              <p>لا يوجد سجل مزامنة</p>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════ TOAST ═══════════ -->
+  <div class="toast" id="toast" hidden></div>
+
+  <!-- ═══════════ SIDEBAR OVERLAY (mobile) ═══════════ -->
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <!-- Scripts -->
+  <script src="config.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
