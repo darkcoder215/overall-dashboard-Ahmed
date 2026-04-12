@@ -42,16 +42,21 @@ export default function Jobs() {
   const [search, setSearch] = useState("");
   const [tab, setTab] = useState("all");
 
+  const fetchJobs = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    try {
+      const data = await getOffers();
+      setOffers(data);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoading(false);
+  };
+
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await getOffers();
-        setOffers(data);
-      } catch (err) {
-        console.error(err);
-      }
-      setLoading(false);
-    })();
+    fetchJobs();
+    const interval = setInterval(() => fetchJobs(false), 5 * 60 * 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const filtered = offers.filter((o) => {

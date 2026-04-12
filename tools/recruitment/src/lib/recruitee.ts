@@ -9,8 +9,6 @@ import type {
 } from "@/types";
 import { supabase, FUNCTIONS_BASE } from "./supabase";
 
-const API_BASE = "https://api.recruitee.com";
-
 let _config: RecruiteeConfig | null = null;
 
 /* ── Config ─────────────────────────────────────────── */
@@ -43,9 +41,17 @@ export async function saveConfig(cfg: RecruiteeConfig) {
   };
 
   if (cfg.id) {
-    await supabase.from("recruitment_config").update(payload).eq("id", cfg.id);
+    // Update existing row
+    const { error } = await supabase
+      .from("recruitment_config")
+      .update(payload)
+      .eq("id", cfg.id);
+    if (error) throw error;
   } else {
-    await supabase.from("recruitment_config").insert(payload);
+    // Delete any existing rows first (singleton), then insert
+    await supabase.from("recruitment_config").delete().neq("id", "00000000-0000-0000-0000-000000000000");
+    const { error } = await supabase.from("recruitment_config").insert(payload);
+    if (error) throw error;
   }
   _config = null; // bust cache
 }
@@ -60,39 +66,23 @@ async function api<T = any>(path: string, opts?: RequestInit): Promise<T> {
   const cfg = await loadConfig();
   if (!cfg) throw new Error("لم يتم إعداد اتصال Recruitee بعد");
 
-  // Try Supabase Edge Function proxy first
-  try {
-    const proxyResp = await fetch(`${FUNCTIONS_BASE}/recruitment-proxy`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${(import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_P_AoE0x-HsqrJTarwZOT7Q_0UE2trZv")}`,
-      },
-      body: JSON.stringify({ path, method: opts?.method || "GET", body: opts?.body }),
-    });
-    if (proxyResp.ok) {
-      return proxyResp.json();
-    }
-  } catch {
-    // proxy not available — fall through to direct call
-  }
-
-  // Direct API call fallback
-  const url = `${API_BASE}/c/${cfg.company_id}${path}`;
-  const resp = await fetch(url, {
-    ...opts,
-    headers: {
-      Authorization: `Bearer ${cfg.api_token}`,
-      "Content-Type": "application/json",
-      ...(opts?.headers || {}),
-    },
+  // Route through Supabase Edge Function proxy (avoids CORS)
+  const proxyResp = await fetch(`${FUNCTIONS_BASE}/recruitment-proxy`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      path,
+      method: opts?.method || "GET",
+      body: opts?.body ? JSON.parse(opts.body as string) : undefined,
+    }),
   });
 
-  if (!resp.ok) {
-    const text = await resp.text();
-    throw new Error(`Recruitee API error ${resp.status}: ${text}`);
+  if (!proxyResp.ok) {
+    const errBody = await proxyResp.text().catch(() => "");
+    throw new Error(`خطأ في الاتصال بـ Recruitee (${proxyResp.status}): ${errBody}`);
   }
-  return resp.json();
+
+  return proxyResp.json();
 }
 
 /* ── Offers (Jobs) ──────────────────────────────────── */
@@ -177,15 +167,29 @@ export async function getPipelineTemplates(): Promise<PipelineTemplate[]> {
   return data.pipeline_templates || [];
 }
 
-/* ── Connection test ────────────────────────────────── */
+/* ── Connection test (via proxy) ───────────────────── */
 
 export async function testConnection(companyId: string, token: string): Promise<boolean> {
   try {
-    const resp = await fetch(`${API_BASE}/c/${companyId}/offers?limit=1`, {
+    // Test by making a direct call to Recruitee (server-side via proxy won't
+    // have config saved yet, so we test directly). We wrap in a try since
+    // CORS may block — if it does, we try the proxy as a fallback.
+    const resp = await fetch(`https://api.recruitee.com/c/${companyId}/offers?limit=1`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return resp.ok;
   } catch {
-    return false;
+    // CORS blocked — try via a simple HEAD-like check through proxy
+    // If config is already saved, the proxy will work
+    try {
+      const proxyResp = await fetch(`${FUNCTIONS_BASE}/recruitment-proxy`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: "/offers?limit=1", method: "GET" }),
+      });
+      return proxyResp.ok;
+    } catch {
+      return false;
+    }
   }
 }

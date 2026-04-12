@@ -14,8 +14,9 @@ import {
   ExternalLink,
   Database,
   Shield,
+  RefreshCw,
 } from "lucide-react";
-import { loadConfig, saveConfig, testConnection, clearConfigCache } from "@/lib/recruitee";
+import { loadConfig, saveConfig, testConnection, clearConfigCache, getOffers } from "@/lib/recruitee";
 import { toast } from "sonner";
 import type { RecruiteeConfig } from "@/types";
 
@@ -24,9 +25,9 @@ export default function Settings() {
   const [apiToken, setApiToken] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [existingConfig, setExistingConfig] = useState<RecruiteeConfig | null>(null);
-  const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [connected, setConnected] = useState<boolean | null>(null);
+  const [testing, setTesting] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -36,36 +37,25 @@ export default function Settings() {
         setCompanyId(cfg.company_id);
         setApiToken(cfg.api_token);
         setCompanyName(cfg.company_name || "");
-        // Test connection on load
-        const ok = await testConnection(cfg.company_id, cfg.api_token);
-        setConnected(ok);
+        // Test by fetching offers through the proxy
+        try {
+          await getOffers();
+          setConnected(true);
+        } catch {
+          setConnected(false);
+        }
       }
     })();
   }, []);
 
-  const handleTest = async () => {
-    if (!companyId || !apiToken) {
-      toast.error("يرجى ملء جميع الحقول المطلوبة");
-      return;
-    }
-    setTesting(true);
-    const ok = await testConnection(companyId, apiToken);
-    setConnected(ok);
-    if (ok) {
-      toast.success("تم الاتصال بنجاح!");
-    } else {
-      toast.error("فشل الاتصال. تحقق من البيانات.");
-    }
-    setTesting(false);
-  };
-
-  const handleSave = async () => {
+  const handleSaveAndTest = async () => {
     if (!companyId || !apiToken) {
       toast.error("يرجى ملء جميع الحقول المطلوبة");
       return;
     }
     setSaving(true);
     try {
+      // 1. Save config to Supabase
       await saveConfig({
         id: existingConfig?.id,
         company_id: companyId,
@@ -73,14 +63,40 @@ export default function Settings() {
         company_name: companyName,
       });
       clearConfigCache();
-      toast.success("تم حفظ الإعدادات بنجاح");
-      // Reload config
+      toast.success("تم حفظ الإعدادات");
+
+      // 2. Reload config
       const cfg = await loadConfig();
       setExistingConfig(cfg);
+
+      // 3. Test connection by fetching offers through the proxy
+      setTesting(true);
+      try {
+        await getOffers();
+        setConnected(true);
+        toast.success("تم الاتصال بـ Recruitee بنجاح!");
+      } catch {
+        setConnected(false);
+        toast.error("تم حفظ الإعدادات لكن فشل الاتصال بـ Recruitee. تحقق من Company ID و API Token.");
+      }
+      setTesting(false);
     } catch (err) {
       toast.error("فشل في حفظ الإعدادات");
     }
     setSaving(false);
+  };
+
+  const handleTestOnly = async () => {
+    setTesting(true);
+    try {
+      await getOffers();
+      setConnected(true);
+      toast.success("الاتصال يعمل بنجاح!");
+    } catch {
+      setConnected(false);
+      toast.error("فشل الاتصال. تحقق من البيانات واحفظ الإعدادات أولاً.");
+    }
+    setTesting(false);
   };
 
   return (
@@ -111,7 +127,7 @@ export default function Settings() {
               <XCircle className="w-8 h-8 text-brand-red flex-shrink-0" />
               <div>
                 <p className="font-bold text-brand-red">غير متصل</p>
-                <p className="text-xs text-muted-foreground">تحقق من إعدادات API أدناه</p>
+                <p className="text-xs text-muted-foreground">تحقق من إعدادات API أدناه واحفظها</p>
               </div>
             </>
           ) : (
@@ -188,14 +204,16 @@ export default function Settings() {
           </div>
 
           <div className="flex gap-3 pt-2">
-            <Button variant="outline" onClick={handleTest} disabled={testing || !companyId || !apiToken}>
-              {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <Link2 className="w-4 h-4" />}
-              اختبار الاتصال
-            </Button>
-            <Button onClick={handleSave} disabled={saving || !companyId || !apiToken}>
+            <Button onClick={handleSaveAndTest} disabled={saving || testing || !companyId || !apiToken}>
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Shield className="w-4 h-4" />}
-              حفظ الإعدادات
+              حفظ واختبار الاتصال
             </Button>
+            {existingConfig && (
+              <Button variant="outline" onClick={handleTestOnly} disabled={testing}>
+                {testing ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                اختبار الاتصال
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -210,10 +228,13 @@ export default function Settings() {
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground space-y-2">
           <p>
-            يتم تخزين إعدادات API في قاعدة بيانات Supabase بشكل آمن. لا يتم مشاركة بياناتك مع أي طرف ثالث.
+            يتم تخزين إعدادات API في قاعدة بيانات آمنة. لا يتم مشاركة بياناتك مع أي طرف ثالث.
           </p>
           <p>
             تُستخدم بيانات Recruitee فقط لعرض المرشحين والوظائف في هذه الأداة، ولتشغيل تحليلات الذكاء الاصطناعي.
+          </p>
+          <p>
+            البيانات تُحدّث تلقائياً كل 5 دقائق لضمان عرض أحدث المعلومات.
           </p>
         </CardContent>
       </Card>

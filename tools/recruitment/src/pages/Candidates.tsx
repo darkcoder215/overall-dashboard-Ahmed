@@ -57,6 +57,12 @@ export default function Candidates() {
     fetchCandidates();
   }, [fetchCandidates]);
 
+  // Background refresh every 5 minutes
+  useEffect(() => {
+    const interval = setInterval(() => fetchCandidates(), 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [fetchCandidates]);
+
   useEffect(() => {
     (async () => {
       try {

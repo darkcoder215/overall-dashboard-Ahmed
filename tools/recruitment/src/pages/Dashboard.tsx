@@ -14,11 +14,14 @@ import {
   ArrowLeft,
   Sparkles,
   Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { getOffers, getCandidates, loadConfig } from "@/lib/recruitee";
 import { getPipelineInsights } from "@/lib/ai";
 import { formatDate, timeAgo, getStageColor } from "@/lib/utils";
 import type { Offer, Candidate } from "@/types";
+
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -28,28 +31,35 @@ export default function Dashboard() {
   const [configured, setConfigured] = useState<boolean | null>(null);
   const [insights, setInsights] = useState<string>("");
   const [insightsLoading, setInsightsLoading] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null);
+
+  const fetchData = async (showLoading = true) => {
+    if (showLoading) setLoading(true);
+    const cfg = await loadConfig();
+    if (!cfg) {
+      setConfigured(false);
+      setLoading(false);
+      return;
+    }
+    setConfigured(true);
+    try {
+      const [offersData, candidatesData] = await Promise.all([
+        getOffers(),
+        getCandidates({ limit: 200 }),
+      ]);
+      setOffers(offersData);
+      setCandidates(candidatesData.candidates);
+      setLastRefresh(new Date());
+    } catch (err) {
+      console.error("Dashboard load error:", err);
+    }
+    setLoading(false);
+  };
 
   useEffect(() => {
-    (async () => {
-      const cfg = await loadConfig();
-      if (!cfg) {
-        setConfigured(false);
-        setLoading(false);
-        return;
-      }
-      setConfigured(true);
-      try {
-        const [offersData, candidatesData] = await Promise.all([
-          getOffers(),
-          getCandidates({ limit: 200 }),
-        ]);
-        setOffers(offersData);
-        setCandidates(candidatesData.candidates);
-      } catch (err) {
-        console.error("Dashboard load error:", err);
-      }
-      setLoading(false);
-    })();
+    fetchData();
+    const interval = setInterval(() => fetchData(false), REFRESH_INTERVAL);
+    return () => clearInterval(interval);
   }, []);
 
   const openJobs = offers.filter((o) => o.status === "published");
@@ -111,6 +121,17 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6 max-w-[1200px]">
+      {/* Refresh bar */}
+      <div className="flex items-center justify-between">
+        <p className="text-xs text-muted-foreground">
+          {lastRefresh && `آخر تحديث: ${lastRefresh.toLocaleTimeString("ar-SA")} · يتحدث تلقائياً كل 5 دقائق`}
+        </p>
+        <Button variant="ghost" size="sm" onClick={() => fetchData(false)} className="text-xs gap-1.5">
+          <RefreshCw className="w-3.5 h-3.5" />
+          تحديث
+        </Button>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 stagger-children">
         <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => navigate("/jobs")}>

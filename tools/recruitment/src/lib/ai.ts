@@ -1,49 +1,20 @@
 import type { AIAnalysis, AISearchResult, Candidate, Offer } from "@/types";
 import { FUNCTIONS_BASE } from "./supabase";
 
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_KEY = "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";
-const MODEL = "google/gemini-2.5-flash";
-
 async function chatCompletion(messages: { role: string; content: string }[]): Promise<string> {
-  // Try Supabase Edge Function first
-  try {
-    const proxyResp = await fetch(`${FUNCTIONS_BASE}/recruitment-ai`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "sb_publishable_P_AoE0x-HsqrJTarwZOT7Q_0UE2trZv"}`,
-      },
-      body: JSON.stringify({ messages }),
-    });
-    if (proxyResp.ok) {
-      const data = await proxyResp.json();
-      return data.response || data.choices?.[0]?.message?.content || "";
-    }
-  } catch {
-    // proxy not available
-  }
-
-  // Direct fallback
-  const resp = await fetch(OPENROUTER_URL, {
+  const resp = await fetch(`${FUNCTIONS_BASE}/recruitment-ai`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENROUTER_KEY}`,
-      "HTTP-Referer": window.location.href,
-      "X-Title": "Thmanyah Recruitment Intelligence",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages,
-      temperature: 0.3,
-      response_format: { type: "json_object" },
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ messages }),
   });
 
-  if (!resp.ok) throw new Error("فشل في الاتصال بخدمة الذكاء الاصطناعي");
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    throw new Error(`فشل في الاتصال بخدمة الذكاء الاصطناعي (${resp.status}): ${errText}`);
+  }
+
   const data = await resp.json();
-  return data.choices?.[0]?.message?.content || "";
+  return data.response || data.choices?.[0]?.message?.content || "";
 }
 
 /* ── Candidate Analysis ─────────────────────────────── */
