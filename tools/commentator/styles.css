@@ -926,10 +926,10 @@ img { max-width: 100%; height: auto; }
   width: 180px; height: 180px;
   max-width: 100%;
   display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
 }
 .dash-welcome-visual svg {
   width: 100%; height: 100%;
-  max-width: 180px; max-height: 180px;
   display: block;
 }
 
@@ -1673,10 +1673,7 @@ img { max-width: 100%; height: auto; }
   overflow: hidden;
 }
 
-/* Ensure images and SVGs are fluid */
-img, svg {
-  max-width: 100%;
-}
+/* (global img fluid rule is already at top of file) */
 
 /* Fix match result text from overflowing on small screens */
 @media (max-width: 600px) {

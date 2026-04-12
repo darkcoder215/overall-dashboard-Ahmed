@@ -269,7 +269,7 @@ function initUpload() {
 
   if (!dropZone || !fileInput) return;
 
-  browseBtn.addEventListener('click', () => fileInput.click());
+  if (browseBtn) browseBtn.addEventListener('click', () => fileInput.click());
 
   fileInput.addEventListener('change', (e) => {
     if (e.target.files.length > 0) handleFile(e.target.files[0]);
@@ -1718,13 +1718,10 @@ window.addEventListener('unhandledrejection', (ev) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
-  try {
-    initUpload();
-    showView('home');
-  } catch (err) {
-    console.error('[commentator] bootstrap failed:', err);
-    showError('خطأ في التشغيل', err?.message || 'تعذّر تشغيل الأداة.');
-  }
+  // Bootstrap each step independently so one failure doesn't block the rest.
+  // Errors are logged to the console instead of surfacing an intrusive modal.
+  try { initUpload(); } catch (e) { console.warn('[commentator] initUpload:', e); }
+  try { showView('home'); } catch (e) { console.warn('[commentator] showView:', e); }
 
   // Sidebar toggle
   const sidebar = document.getElementById('sidebar');
