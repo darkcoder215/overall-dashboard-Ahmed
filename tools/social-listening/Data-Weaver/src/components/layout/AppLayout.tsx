@@ -8,7 +8,13 @@ export default function AppLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const [pageKey, setPageKey] = useState(location.pathname);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    // Auto-collapse sidebar when embedded in an iframe or on narrow screens
+    if (typeof window !== 'undefined') {
+      return window.self !== window.top || window.innerWidth < 1024;
+    }
+    return false;
+  });
 
   useEffect(() => {
     setPageKey(location.pathname);
@@ -25,12 +31,12 @@ export default function AppLayout() {
         />
         <main className="flex-1 min-h-screen overflow-x-hidden">
           <header className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/50">
-            <div className="flex items-center justify-between px-8 py-4">
+            <div className="flex items-center justify-between px-4 sm:px-8 py-3 sm:py-4">
               <PageTitle />
               <div className="text-[11px] font-bold text-muted-foreground/40 tracking-wide">الإصدار 3.0</div>
             </div>
           </header>
-          <div key={pageKey} className="page-enter px-8 py-6">
+          <div key={pageKey} className="page-enter px-4 sm:px-8 py-4 sm:py-6">
             <Outlet />
           </div>
         </main>

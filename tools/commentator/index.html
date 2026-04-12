@@ -1030,6 +1030,12 @@
     </div>
   </div>
 
+  <script>
+    // Detect iframe embedding — auto-collapse sidebar for better UX
+    if (window.self !== window.top) {
+      document.documentElement.classList.add('in-iframe');
+    }
+  </script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -105,10 +105,10 @@ const ChatInterface = ({ userRole, userId }: ChatInterfaceProps) => {
   return (
     <div className="flex h-full flex-col">
       {/* ── Document Filter Bar ── */}
-      <div className="border-b border-border bg-card/60 px-4 py-3 backdrop-blur-sm" dir="rtl">
-        <div className="mx-auto flex max-w-3xl items-center gap-3">
+      <div className="border-b border-border bg-card/60 px-3 sm:px-4 py-2 sm:py-3 backdrop-blur-sm" dir="rtl">
+        <div className="mx-auto flex max-w-3xl items-center gap-2 sm:gap-3">
           <Filter className="h-4 w-4 shrink-0 text-brand-green" />
-          <span className="font-ui text-sm font-bold text-foreground shrink-0">البحث في:</span>
+          <span className="font-ui text-xs sm:text-sm font-bold text-foreground shrink-0">البحث في:</span>
           <Select value={selectedDoc} onValueChange={setSelectedDoc}>
             <SelectTrigger className="h-9 flex-1 rounded-xl border-border bg-background font-ui text-sm text-center transition-colors" dir="rtl">
               <SelectValue placeholder="جميع المستندات" />
@@ -130,26 +130,26 @@ const ChatInterface = ({ userRole, userId }: ChatInterfaceProps) => {
         <div className="mx-auto max-w-3xl space-y-6">
           {/* Empty State — brand-aligned welcome */}
           {messages.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in-up" dir="rtl">
+            <div className="flex flex-col items-center justify-center py-10 sm:py-20 text-center animate-fade-in-up px-2" dir="rtl">
               {/* Logo in black container per brand guidelines */}
-              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-2xl bg-black p-4 shadow-lg transition-transform duration-300 hover:scale-105">
+              <div className="mb-4 sm:mb-6 flex h-16 w-16 sm:h-24 sm:w-24 items-center justify-center rounded-2xl bg-black p-3 sm:p-4 shadow-lg transition-transform duration-300 hover:scale-105">
                 <img src={`${import.meta.env.BASE_URL}thamanyah.png`} alt="ثمانية" className="h-full w-full object-contain" />
               </div>
 
-              <h2 className="mb-2 font-display text-2xl font-bold text-foreground">
+              <h2 className="mb-2 font-display text-xl sm:text-2xl font-bold text-foreground">
                 مساعد ثمانية الذكي
               </h2>
-              <p className="max-w-md font-body text-sm leading-relaxed text-muted-foreground">
+              <p className="max-w-md font-body text-xs sm:text-sm leading-relaxed text-muted-foreground">
                 اسألني عن أي سياسة أو معلومة من المستندات المتاحة وسأجيبك مع ذكر المصادر
               </p>
 
               {/* Suggested question chips — pill shape per brand */}
-              <div className="mt-8 flex flex-wrap justify-center gap-2 stagger-children">
+              <div className="mt-6 sm:mt-8 flex flex-wrap justify-center gap-2 stagger-children">
                 {["ما هي السياسات المتاحة؟", "أخبرني عن الإجازات", "ما هي حقوق الموظف؟"].map((q) => (
                   <button
                     key={q}
                     onClick={() => setInput(q)}
-                    className="rounded-full border border-border bg-card px-5 py-2.5 font-ui text-xs text-foreground shadow-sm transition-all duration-200 hover:border-brand-green/30 hover:bg-brand-green/5 hover:shadow-md"
+                    className="rounded-full border border-border bg-card px-3 sm:px-5 py-2 sm:py-2.5 font-ui text-[11px] sm:text-xs text-foreground shadow-sm transition-all duration-200 hover:border-brand-green/30 hover:bg-brand-green/5 hover:shadow-md"
                   >
                     {q}
                   </button>
@@ -188,17 +188,17 @@ const ChatInterface = ({ userRole, userId }: ChatInterfaceProps) => {
       </ScrollArea>
 
       {/* ── Input Bar ── */}
-      <div className="border-t border-border bg-card/60 p-4 backdrop-blur-sm">
+      <div className="border-t border-border bg-card/60 p-2 sm:p-4 backdrop-blur-sm">
         <form
           onSubmit={(e) => { e.preventDefault(); sendMessage(); }}
-          className="mx-auto flex max-w-3xl gap-3"
+          className="mx-auto flex max-w-3xl gap-2 sm:gap-3"
           dir="rtl"
         >
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="اكتب سؤالك هنا..."
-            className="h-12 flex-1 rounded-xl border-border bg-background font-ui text-sm transition-all duration-200 focus:border-brand-green focus:ring-1 focus:ring-brand-green/30"
+            className="h-10 sm:h-12 flex-1 rounded-xl border-border bg-background font-ui text-sm transition-all duration-200 focus:border-brand-green focus:ring-1 focus:ring-brand-green/30"
             disabled={isLoading}
           />
           {/* Accent send button: green per brand CTA guidelines */}
@@ -206,7 +206,7 @@ const ChatInterface = ({ userRole, userId }: ChatInterfaceProps) => {
             type="submit"
             size="icon"
             disabled={isLoading || !input.trim()}
-            className="h-12 w-12 shrink-0 rounded-xl bg-brand-green text-white shadow-sm transition-all duration-200 hover:bg-brand-green/90 hover:shadow-md disabled:bg-muted disabled:text-muted-foreground"
+            className="h-10 w-10 sm:h-12 sm:w-12 shrink-0 rounded-xl bg-brand-green text-white shadow-sm transition-all duration-200 hover:bg-brand-green/90 hover:shadow-md disabled:bg-muted disabled:text-muted-foreground"
           >
             <Send className="h-4 w-4" />
           </Button>

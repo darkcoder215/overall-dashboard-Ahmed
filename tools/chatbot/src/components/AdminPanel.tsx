@@ -87,31 +87,33 @@ const AdminPanel = () => {
               {documents.map((doc, i) => (
                 <div
                   key={doc.id}
-                  className="flex items-center justify-between rounded-xl border border-border bg-background p-4 transition-all duration-200 hover:border-brand-green/20 hover:shadow-sm"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-border bg-background p-3 sm:p-4 transition-all duration-200 hover:border-brand-green/20 hover:shadow-sm"
                   style={{ animationDelay: `${i * 50}ms` }}
                 >
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <div>
-                      <p className="font-ui text-sm font-medium">{doc.title}</p>
-                      <p className="font-ui text-xs text-muted-foreground">{doc.file_name}</p>
+                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-wrap">
+                    <FileText className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5 sm:mt-0" />
+                    <div className="min-w-0">
+                      <p className="font-ui text-sm font-medium truncate">{doc.title}</p>
+                      <p className="font-ui text-xs text-muted-foreground truncate">{doc.file_name}</p>
                     </div>
-                    {tierBadge(doc.access_tier)}
-                    <span
-                      className={`rounded-full px-2.5 py-0.5 font-ui text-xs ${
-                        doc.status === "processed"
-                          ? "bg-brand-green/10 text-brand-green"
-                          : "bg-brand-amber/10 text-brand-amber"
-                      }`}
-                    >
-                      {doc.status === "processed" ? "مُعالج" : "قيد المعالجة"}
-                    </span>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {tierBadge(doc.access_tier)}
+                      <span
+                        className={`rounded-full px-2.5 py-0.5 font-ui text-xs ${
+                          doc.status === "processed"
+                            ? "bg-brand-green/10 text-brand-green"
+                            : "bg-brand-amber/10 text-brand-amber"
+                        }`}
+                      >
+                        {doc.status === "processed" ? "مُعالج" : "قيد المعالجة"}
+                      </span>
+                    </div>
                   </div>
                   <Button
                     variant="ghost"
                     size="icon"
                     onClick={() => deleteDocument(doc.id)}
-                    className="rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-brand-red/10 hover:text-brand-red"
+                    className="rounded-lg text-muted-foreground transition-colors duration-200 hover:bg-brand-red/10 hover:text-brand-red shrink-0 self-end sm:self-auto"
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>

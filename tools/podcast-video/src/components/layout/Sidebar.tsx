@@ -21,9 +21,11 @@ const navItems = [
   { href: '/settings', label: 'الإعدادات', icon: Settings },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ hidden = false }: { hidden?: boolean }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+
+  if (hidden) return null;
 
   return (
     <motion.aside
