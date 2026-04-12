@@ -1,0 +1,8 @@
+{
+  "slug": "commentator",
+  "name": "Commentator Analysis Tool",
+  "nameAr": "أداة التعليق",
+  "type": "static",
+  "sourceDir": ".",
+  "basePath": "/commentator"
+}

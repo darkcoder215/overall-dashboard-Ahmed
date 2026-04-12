@@ -1,0 +1,10 @@
+{
+  "slug": "chatbot",
+  "name": "Thmanyah AI Assistant",
+  "nameAr": "المساعد الذكي",
+  "type": "vite",
+  "sourceDir": ".",
+  "dist": "dist",
+  "buildCmd": "npm run build",
+  "basePath": "/chatbot/"
+}

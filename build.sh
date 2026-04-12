@@ -3,39 +3,38 @@
 # Thmanyah Overall Dashboard — unified Vercel build orchestrator
 # =====================================================================
 #
-# ONE deploy = all seven tools live under the same origin. Each tool
-# is built INDEPENDENTLY: if one build fails, the rest still ship and
-# that tool gets a placeholder page that tells the user how to fix it.
+# ONE deploy = the root launcher + every tool under `tools/`, all live
+# under the same origin. The build is DATA-DRIVEN: this script just
+# iterates `tools/*/tool.json` and builds each tool according to its
+# manifest. Adding a new tool is therefore a two-step change with
+# no edits to this file (see `tools/README.md`).
 #
 # Output layout (served by Vercel from $OUT_DIR):
 #   /                          → Overall-Dashboard launcher
-#   /commentator/              → Commentator Analysis Tool (vanilla HTML)
-#   /chatbot/                  → Chatbot (Vite static export)
-#   /social-listening/         → Social Listening (Vite static export)
-#   /podcast-video/            → Podcast & Video (Next.js static export)
-#   /hr-approval/              → HR Approval (Next.js static export)
-#   /feedback-platform/        → Feedback Platform (Next.js static export)
+#   /<slug>/                   → one folder per tool (slug from tool.json)
+#   /fonts/                    → shared Thmanyah font pool (from commentator)
+#
+# Each tool is built in an isolated subshell so that:
+#   · a crashing build never kills the overall deploy
+#   · env vars set for one build don't leak into the next
+#   · the working directory is restored after each iteration
 #
 # Env toggles (optional):
 #   SKIP_INSTALL=1    reuse existing node_modules (fast rebuilds)
 #   ONLY_TOOL=<slug>  build only a single tool (debugging)
 #   VERBOSE=1         stream per-tool build logs to stdout
-#
-# Every tool builds in a dedicated subshell so that:
-#   · a crashing build never kills the overall deploy
-#   · env vars set for one build don't leak into the next
-#   · the working directory is restored after each iteration
 # =====================================================================
 
 set -u  # NO `set -e`: we WANT to continue past failures. Each tool's
         # exit code is captured individually and reported at the end.
 
-# Move to repo root regardless of where build.sh was invoked from.
 REPO_ROOT="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$REPO_ROOT"
 
 OUT_DIR="${OUT_DIR:-$REPO_ROOT/_site}"
 LOG_DIR="$OUT_DIR/_build-logs"
+TOOLS_DIR="$REPO_ROOT/tools"
+DASHBOARD_DIR="$REPO_ROOT/Overall-Dashboard"
 
 # ── Colours (disabled if not a TTY or CI) ───────────────────────────
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
@@ -57,15 +56,48 @@ log "OUT_DIR=$OUT_DIR"
 rm -rf "$OUT_DIR"
 mkdir -p "$OUT_DIR" "$LOG_DIR"
 
-# Track which tools succeeded vs. failed so we can print a summary.
 declare -a SUCCESS_TOOLS=()
 declare -a FAILED_TOOLS=()
 
 # ---------------------------------------------------------------------
-# Helpers
+# Manifest reader
+#
+# `tool.json` is plain JSON. We don't want a hard dependency on `jq`
+# or `python`, so we read it with a tiny Node one-liner (Node is
+# already required because every non-static tool builds with npm).
+# The reader exports each field as `M_<UPPER>` into the current shell.
 # ---------------------------------------------------------------------
+read_manifest() {
+  local file="$1"
+  if [ ! -f "$file" ]; then
+    return 1
+  fi
+  local exports
+  exports=$(node -e '
+    const m = require(process.argv[1]);
+    const kv = (k, v) => {
+      if (v === undefined || v === null) return;
+      // Escape single quotes for POSIX shell by wrapping in '\'...'\''.
+      const s = String(v).replace(/'"'"'/g, `'"'"'\\'"'"''"'"'`);
+      process.stdout.write(`M_${k}='"'"'${s}'"'"'\n`);
+    };
+    kv("SLUG", m.slug);
+    kv("NAME", m.name);
+    kv("NAME_AR", m.nameAr);
+    kv("TYPE", m.type);
+    kv("SOURCE_DIR", m.sourceDir || ".");
+    kv("DIST", m.dist || "");
+    kv("BUILD_CMD", m.buildCmd || "");
+    kv("BASE_PATH", m.basePath || "");
+    kv("HIDE_API", m.hideApi ? "1" : "0");
+  ' "$file" 2>/dev/null)
+  if [ -z "$exports" ]; then
+    return 1
+  fi
+  eval "$exports"
+  return 0
+}
 
-# Whether `ONLY_TOOL` filter says we should run this slug.
 should_build() {
   local slug="$1"
   if [ -n "${ONLY_TOOL:-}" ] && [ "$ONLY_TOOL" != "$slug" ]; then
@@ -75,7 +107,7 @@ should_build() {
 }
 
 # Write a placeholder page for a tool that failed to build. The dashboard
-# will still list it and the iframe will show this page instead of a 404.
+# still lists it and the iframe shows this page instead of a 404.
 write_placeholder() {
   local slug="$1" name="$2" reason="$3" dest="$OUT_DIR/$slug"
   mkdir -p "$dest"
@@ -109,19 +141,26 @@ write_placeholder() {
 EOF
 }
 
-# Build wrapper: runs a command in a subshell, captures the exit code,
-# and either copies the output to $OUT_DIR/<slug> or writes a placeholder.
-#
-# If HIDE_APP_API=1 is set in the caller's env, the tool's
-# `src/app/api/` folder is temporarily moved aside during the build.
-# Next.js `output: "export"` chokes on API route handlers, so we
-# swap them out, run the build, and restore them afterwards. A trap
-# guarantees the folder comes back even if the build crashes.
-#
-# Args: slug human_name tool_dir dist_subdir build_cmd...
-build_tool() {
-  local slug="$1" name="$2" tool_dir="$3" dist_subdir="$4"
-  shift 4
+# Copy the build output (or the static source) into $OUT_DIR/<slug>/.
+copy_to_out() {
+  local slug="$1" src="$2"
+  mkdir -p "$OUT_DIR/$slug"
+  cp -a "$src"/. "$OUT_DIR/$slug"/
+}
+
+# ---------------------------------------------------------------------
+# Build a single tool from its manifest.
+# All manifest fields are already in scope (M_SLUG, M_TYPE, etc.)
+# ---------------------------------------------------------------------
+build_from_manifest() {
+  local tool_root="$1"   # absolute path to the folder containing tool.json
+  local slug="$M_SLUG"
+  local name="$M_NAME"
+  local type="$M_TYPE"
+  local source_dir="$tool_root/$M_SOURCE_DIR"
+  local dist="$M_DIST"
+  local base_path="$M_BASE_PATH"
+  local hide_api="$M_HIDE_API"
   local log_file="$LOG_DIR/$slug.log"
 
   if ! should_build "$slug"; then
@@ -129,27 +168,49 @@ build_tool() {
     return 0
   fi
 
-  sec "Building: $name ($slug)"
-  log "dir:  $tool_dir"
+  sec "Building: $name ($slug, type=$type)"
+  log "dir:  $source_dir"
   log "log:  $log_file"
 
-  if [ ! -d "$tool_dir" ]; then
-    err "[$slug] tool directory missing: $tool_dir"
-    write_placeholder "$slug" "$name" "directory missing: $tool_dir"
+  if [ ! -d "$source_dir" ]; then
+    err "[$slug] source directory missing: $source_dir"
+    write_placeholder "$slug" "$name" "source directory missing"
     FAILED_TOOLS+=("$slug")
     return 0
   fi
 
-  # Run build in a subshell so cd/env changes don't escape.
+  # ── Static tools: plain copy, no build ──
+  if [ "$type" = "static" ]; then
+    copy_to_out "$slug" "$source_dir"
+    ok "[$slug] copied → $OUT_DIR/$slug"
+    SUCCESS_TOOLS+=("$slug")
+    return 0
+  fi
+
+  # ── Vite / Next.js: run the build in a subshell ──
   (
     set +e
-    cd "$tool_dir" || exit 97
+    cd "$source_dir" || exit 97
 
-    # If HIDE_APP_API=1, rename src/app/api aside for the duration of
-    # the build and guarantee its restoration via EXIT trap.
+    # Per-framework env wiring.
+    case "$type" in
+      vite)
+        export BASE_PATH="$base_path"
+        export VITE_BASE_PATH="$base_path"
+        ;;
+      next)
+        # `basePath` without a trailing slash for Next.js.
+        export NEXT_BASE_PATH="${base_path%/}"
+        export NEXT_EXPORT=1
+        ;;
+    esac
+
+    # HIDE_API=1 moves `src/app/api` aside for the build. Next.js
+    # `output: "export"` chokes on API route handlers, so we swap them
+    # out, run the build, and guarantee restoration via an EXIT trap.
     local api_hidden=""
-    if [ "${HIDE_APP_API:-0}" = "1" ] && [ -d src/app/api ]; then
-      log "[$slug] HIDE_APP_API=1 → moving src/app/api → src/app/_api_hidden_for_export"
+    if [ "$hide_api" = "1" ] && [ -d src/app/api ]; then
+      log "[$slug] hide_api=true → moving src/app/api aside"
       mv src/app/api src/app/_api_hidden_for_export
       api_hidden=1
       trap 'if [ -n "$api_hidden" ] && [ -d src/app/_api_hidden_for_export ]; then mv src/app/_api_hidden_for_export src/app/api; fi' EXIT
@@ -163,70 +224,47 @@ build_tool() {
       else
         npm install --no-audit --no-fund --prefer-offline >> "$log_file" 2>&1
       fi
-      local install_rc=$?
-      if [ $install_rc -ne 0 ]; then
-        err "[$slug] npm install failed (rc=$install_rc)"
+      if [ $? -ne 0 ]; then
+        err "[$slug] npm install failed"
         exit 98
       fi
     else
       log "[$slug] SKIP_INSTALL=1 → reusing existing node_modules"
     fi
 
-    log "[$slug] running: $*"
+    log "[$slug] running: $M_BUILD_CMD"
     if [ -n "${VERBOSE:-}" ]; then
-      "$@" 2>&1 | tee -a "$log_file"
+      eval "$M_BUILD_CMD" 2>&1 | tee -a "$log_file"
       exit ${PIPESTATUS[0]}
     else
-      "$@" >> "$log_file" 2>&1
+      eval "$M_BUILD_CMD" >> "$log_file" 2>&1
     fi
   )
   local rc=$?
 
-  # Belt + braces: if the subshell somehow exited without running the
-  # trap (e.g. SIGKILL), restore the hidden api folder from the parent.
-  if [ -d "$tool_dir/src/app/_api_hidden_for_export" ]; then
-    mv "$tool_dir/src/app/_api_hidden_for_export" "$tool_dir/src/app/api" || true
+  # Belt + braces: restore a hidden api folder from the parent shell in
+  # case the subshell trap didn't run (e.g. SIGKILL).
+  if [ -d "$source_dir/src/app/_api_hidden_for_export" ]; then
+    mv "$source_dir/src/app/_api_hidden_for_export" "$source_dir/src/app/api" || true
   fi
 
   if [ $rc -ne 0 ]; then
     err "[$slug] build failed (rc=$rc) — writing placeholder"
-    FAILED_TOOLS+=("$slug")
     write_placeholder "$slug" "$name" "build exited with code $rc"
-    return 0
-  fi
-
-  local src="$tool_dir/$dist_subdir"
-  if [ ! -d "$src" ]; then
-    err "[$slug] build finished but expected output missing: $src"
     FAILED_TOOLS+=("$slug")
-    write_placeholder "$slug" "$name" "missing build artifact: $dist_subdir"
     return 0
   fi
 
-  mkdir -p "$OUT_DIR/$slug"
-  # Copy contents (not the dir itself) into $OUT_DIR/$slug/
-  cp -a "$src"/. "$OUT_DIR/$slug"/
+  local artifact="$source_dir/$dist"
+  if [ ! -d "$artifact" ]; then
+    err "[$slug] build finished but expected output missing: $artifact"
+    write_placeholder "$slug" "$name" "missing build artifact: $dist"
+    FAILED_TOOLS+=("$slug")
+    return 0
+  fi
+
+  copy_to_out "$slug" "$artifact"
   ok "[$slug] built → $OUT_DIR/$slug"
-  SUCCESS_TOOLS+=("$slug")
-}
-
-# Static copy wrapper for vanilla HTML tools.
-copy_static_tool() {
-  local slug="$1" name="$2" tool_dir="$3"
-  if ! should_build "$slug"; then
-    log "[$slug] skipped (ONLY_TOOL=$ONLY_TOOL)"
-    return 0
-  fi
-  sec "Copying static: $name ($slug)"
-  if [ ! -d "$tool_dir" ]; then
-    err "[$slug] directory missing: $tool_dir"
-    FAILED_TOOLS+=("$slug")
-    write_placeholder "$slug" "$name" "directory missing"
-    return 0
-  fi
-  mkdir -p "$OUT_DIR/$slug"
-  cp -a "$tool_dir"/. "$OUT_DIR/$slug"/
-  ok "[$slug] copied → $OUT_DIR/$slug"
   SUCCESS_TOOLS+=("$slug")
 }
 
@@ -234,146 +272,87 @@ copy_static_tool() {
 # 1. Root launcher — Overall Dashboard (vanilla HTML) + shared fonts
 # =====================================================================
 sec "Copying root: Overall Dashboard"
-cp -a "$REPO_ROOT/Overall-Dashboard"/. "$OUT_DIR"/
+cp -a "$DASHBOARD_DIR"/. "$OUT_DIR"/
 
 # The dashboard references the commentator tool's font/logo assets via
-# relative paths (../Thmanyah-Commentator-Tool-.../Usable/...). After
-# the monorepo is flattened, those relative paths resolve to
-# /Thmanyah-Commentator-Tool-.../Usable/..., so we still need to ship
-# the `Usable/` asset folder at that exact path.
-mkdir -p "$OUT_DIR/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh"
-cp -a \
-  "$REPO_ROOT/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/Usable" \
-  "$OUT_DIR/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/"
+# a legacy relative path. A compat symlink in the source tree
+# (Thmanyah-Commentator-Tool-.../ → tools/commentator/) keeps local dev
+# working; here we replicate the same path in the deployed output so
+# those relative URLs resolve at runtime too. The copy is cheap (~3MB)
+# and self-contained to the commentator tool's own Usable/ folder.
+LEGACY_COMMENTATOR_DIR="$OUT_DIR/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh"
+mkdir -p "$LEGACY_COMMENTATOR_DIR"
+cp -a "$TOOLS_DIR/commentator/Usable" "$LEGACY_COMMENTATOR_DIR/"
 
 # ── Shared Thmanyah font pool at the site root ──
-# Every tool's CSS references fonts via absolute paths like
+# Every Next.js tool's CSS references fonts via absolute paths like
 # `url('/fonts/Thmanyah*.otf')`. Vite rewrites those to include the
 # tool's base path during build, but Next.js does NOT — so under
-# subpath deploys the Next.js tools' fonts 404 unless we also place
-# the font files at the root-level `/fonts/` path. Copying the
-# canonical Usable folder here makes the absolute paths resolve
-# correctly regardless of which framework built the tool.
+# subpath deploys the fonts 404 unless we also place them at the
+# root-level `/fonts/` path. This copy makes absolute paths resolve
+# regardless of which framework built the tool.
 mkdir -p "$OUT_DIR/fonts"
-cp -a \
-  "$REPO_ROOT/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/Usable"/. \
-  "$OUT_DIR/fonts"/
-# Drop the brand PDF and keep only .otf + .png, since the root /fonts/
-# folder should behave like a clean font pool.
+cp -a "$TOOLS_DIR/commentator/Usable"/. "$OUT_DIR/fonts"/
+# Drop anything that isn't a font or the brand logo, since /fonts/
+# should behave like a clean font pool.
 find "$OUT_DIR/fonts" -maxdepth 1 -type f ! -name '*.otf' ! -name '*.png' -delete 2>/dev/null || true
-# The shared logo also lives at the root so tools can reference it.
-cp -f \
-  "$REPO_ROOT/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/Usable/thamanyah.png" \
-  "$OUT_DIR/thamanyah.png" 2>/dev/null || true
+
+# Shared logo at the root so tools can reference it absolutely.
+cp -f "$TOOLS_DIR/commentator/Usable/thamanyah.png" "$OUT_DIR/thamanyah.png" 2>/dev/null || true
+
 ok "dashboard launcher + shared fonts in place"
 
 # =====================================================================
-# 2. Commentator — vanilla HTML copy
-# =====================================================================
-copy_static_tool \
-  "commentator" \
-  "Commentator Analysis Tool" \
-  "$REPO_ROOT/Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh"
-
-# =====================================================================
-# 3. Chatbot — Vite static build (BASE_PATH=/chatbot/)
+# 2. Supabase credentials for the embedded tools
 #
-# The chatbot talks to Supabase Edge Functions directly from the browser
-# (authenticate / chat / process-document). Vite inlines `import.meta.env.VITE_*`
-# at BUILD time, so if these vars aren't exported here the compiled bundle
-# ends up with string literals like `"undefined/functions/v1/chat"` and
-# `Authorization: "Bearer undefined"` — and every call fails.
-#
-# Defaults match the unified Thmanyah Supabase project declared in
-# Overall-Dashboard/config.js. A Vercel project-level env var with the same
-# name overrides the default (shell `${VAR:-default}` semantics).
+# Vite and Next.js inline `import.meta.env.*` / `process.env.NEXT_PUBLIC_*`
+# at build time, so we export the unified Thmanyah project credentials
+# here instead of sprinkling them across every tool.json. A Vercel
+# project-level env var with the same name overrides the default.
 # =====================================================================
 : "${VITE_SUPABASE_URL:=https://hbnvbfcwrfanpayxulih.supabase.co}"
 : "${VITE_SUPABASE_PUBLISHABLE_KEY:=sb_publishable_P_AoE0x-HsqrJTarwZOT7Q_0UE2trZv}"
 export VITE_SUPABASE_URL VITE_SUPABASE_PUBLISHABLE_KEY
-log "Using VITE_SUPABASE_URL=$VITE_SUPABASE_URL"
 
-# =====================================================================
-# Shared Supabase credentials for Next.js tools
-#
-# HR Approval, Podcast & Video, and Feedback Platform are Next.js apps
-# that read `process.env.NEXT_PUBLIC_SUPABASE_URL` / `_ANON_KEY` at build
-# time and inline the string literals into the static bundle. Without
-# these exports the compiled code falls through to the hard-coded
-# fallbacks inside each tool's `src/lib/supabase.ts` (which point at the
-# same unified Thmanyah project, so nothing breaks — but wiring them
-# through build.sh means a single Vercel env-var override flips every
-# Next tool at once).
-# =====================================================================
 : "${NEXT_PUBLIC_SUPABASE_URL:=https://hbnvbfcwrfanpayxulih.supabase.co}"
 : "${NEXT_PUBLIC_SUPABASE_ANON_KEY:=sb_publishable_P_AoE0x-HsqrJTarwZOT7Q_0UE2trZv}"
 export NEXT_PUBLIC_SUPABASE_URL NEXT_PUBLIC_SUPABASE_ANON_KEY
-log "Using NEXT_PUBLIC_SUPABASE_URL=$NEXT_PUBLIC_SUPABASE_URL"
 
-BASE_PATH="/chatbot/" \
-VITE_BASE_PATH="/chatbot/" \
-  build_tool \
-    "chatbot" \
-    "Thmanyah AI Assistant" \
-    "$REPO_ROOT/New Chatbot - Thmanyah" \
-    "dist" \
-    npm run build
+log "Shared Supabase URL: $NEXT_PUBLIC_SUPABASE_URL"
 
 # =====================================================================
-# 4. Social Listening — Vite static build
-# The top-level folder is a stub (`index.html` points at a non-existent
-# `/src/main.tsx`). The real client lives in `Data-Weaver/client/` with
-# its own vite.config.ts (`root: "client"`, `outDir: "dist/public"`).
-# We build Data-Weaver directly with `npx vite build` — bypassing its
-# `npm run build` which also esbuilds an Express server we don't need
-# in a static deploy.
+# 3. Build every tool under tools/ in manifest order
+#
+# Manifests are processed in alphabetical order of their directory
+# name. That's stable across machines and means debugging logs line
+# up. Tools are discovered by globbing `tools/*/tool.json` — drop a
+# new folder with a manifest and it gets picked up automatically.
 # =====================================================================
-BASE_PATH="/social-listening/" \
-VITE_BASE_PATH="/social-listening/" \
-  build_tool \
-    "social-listening" \
-    "Social Listening" \
-    "$REPO_ROOT/Social-Listening---Final-Bassam-claude-debug-blank-page-3cSDv/Data-Weaver" \
-    "dist/public" \
-    npx vite build
+sec "Discovering tools under $TOOLS_DIR"
+if [ ! -d "$TOOLS_DIR" ]; then
+  err "tools directory missing: $TOOLS_DIR"
+  exit 1
+fi
 
-# =====================================================================
-# 5. Podcast & Video — Next.js static export
-# =====================================================================
-NEXT_EXPORT=1 \
-NEXT_BASE_PATH="/podcast-video" \
-HIDE_APP_API=1 \
-  build_tool \
-    "podcast-video" \
-    "Podcast & Video Analysis" \
-    "$REPO_ROOT/Podcast & Video Analysis Platform" \
-    "out" \
-    npm run build
+# Collect manifest paths into a sorted array so we can iterate safely
+# even on paths that contain spaces (old habits die hard).
+shopt -s nullglob
+manifests=( "$TOOLS_DIR"/*/tool.json )
+shopt -u nullglob
 
-# =====================================================================
-# 6. HR Approval — Next.js static export
-# =====================================================================
-NEXT_EXPORT=1 \
-NEXT_BASE_PATH="/hr-approval" \
-HIDE_APP_API=1 \
-  build_tool \
-    "hr-approval" \
-    "HR Approval Workflow" \
-    "$REPO_ROOT/HR-Approval-Workflow-claude-hiring-approval-framework-5782x/HR-Approval-Workflow-claude-hiring-approval-framework-5782x" \
-    "out" \
-    npm run build
+if [ ${#manifests[@]} -eq 0 ]; then
+  warn "No tool.json manifests found under $TOOLS_DIR"
+fi
 
-# =====================================================================
-# 7. Feedback Platform — Next.js static export
-# =====================================================================
-NEXT_EXPORT=1 \
-NEXT_BASE_PATH="/feedback-platform" \
-  build_tool \
-    "feedback-platform" \
-    "Feedback Analysis Platform" \
-    "$REPO_ROOT/Feedback Platform/company-feedback-platform-abdulqudoos-claude-feedback-analysis-platform-dwcOg" \
-    "out" \
-    npm run build
+for manifest in "${manifests[@]}"; do
+  tool_root="$( dirname "$manifest" )"
+  if ! read_manifest "$manifest"; then
+    err "Failed to parse $manifest — skipping"
+    continue
+  fi
+  log "Found tool: $M_SLUG ($M_TYPE)"
+  build_from_manifest "$tool_root"
+done
 
 # =====================================================================
 # Final summary

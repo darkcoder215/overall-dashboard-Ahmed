@@ -1,0 +1,10 @@
+{
+  "slug": "social-listening",
+  "name": "Social Listening",
+  "nameAr": "الاستماع الاجتماعي",
+  "type": "vite",
+  "sourceDir": "Data-Weaver",
+  "dist": "dist/public",
+  "buildCmd": "npx vite build",
+  "basePath": "/social-listening/"
+}

@@ -1,0 +1,11 @@
+{
+  "slug": "feedback-platform",
+  "name": "Feedback Analysis Platform",
+  "nameAr": "منصة تحليل التقييمات",
+  "type": "next",
+  "sourceDir": ".",
+  "dist": "out",
+  "buildCmd": "npm run build",
+  "basePath": "/feedback-platform",
+  "hideApi": false
+}

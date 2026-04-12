@@ -1,0 +1,11 @@
+{
+  "slug": "podcast-video",
+  "name": "Podcast & Video Analysis",
+  "nameAr": "تحليل البودكاست والفيديو",
+  "type": "next",
+  "sourceDir": ".",
+  "dist": "out",
+  "buildCmd": "npm run build",
+  "basePath": "/podcast-video",
+  "hideApi": true
+}

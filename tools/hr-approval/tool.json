@@ -1,0 +1,11 @@
+{
+  "slug": "hr-approval",
+  "name": "HR Approval Workflow",
+  "nameAr": "اعتماد طلبات التوظيف",
+  "type": "next",
+  "sourceDir": ".",
+  "dist": "out",
+  "buildCmd": "npm run build",
+  "basePath": "/hr-approval",
+  "hideApi": true
+}
