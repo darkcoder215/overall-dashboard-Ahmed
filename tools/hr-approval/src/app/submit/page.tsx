@@ -323,7 +323,7 @@ function SubmitForm() {
       await new Promise((r) => setTimeout(r, 400));
 
       if (!res.ok || data.error) {
-        const debugInfo = data.debug ? `\n\nOpenRouter response:\n${data.debug}` : "";
+        const debugInfo = data.debug ? `\n\nAI response:\n${data.debug}` : "";
         setAnalysisError((data.error || "فشل التحليل") + debugInfo);
         setShowAnalysis(true);
       } else {

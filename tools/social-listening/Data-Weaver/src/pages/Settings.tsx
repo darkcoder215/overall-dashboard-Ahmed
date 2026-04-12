@@ -56,7 +56,7 @@ const TABS: { id: ActiveTab; label: string; icon: React.ElementType; color: stri
   { id: "ai", label: "تحليل الذكاء الاصطناعي", icon: Cpu, color: "#00C17A" },
   { id: "api", label: "مفاتيح API", icon: Key, color: "#FFBC0A" },
   { id: "accounts", label: "الحسابات المراقبة", icon: Users, color: "#ff0050" },
-  { id: "apify", label: "Apify Actors", icon: Bot, color: "#8B5CF6" },
+  { id: "apify", label: "أدوات الجلب", icon: Bot, color: "#8B5CF6" },
   { id: "tokens", label: "حاسبة التوكنات", icon: Calculator, color: "#0072F9" },
 ];
 
@@ -292,7 +292,7 @@ function AITab() {
         <div className="rounded-2xl bg-thmanyah-amber/5 border border-thmanyah-amber/20 p-4 flex items-start gap-3">
           <AlertTriangle className="w-4 h-4 text-thmanyah-amber shrink-0 mt-0.5" />
           <div>
-            <p className="text-[12px] font-bold text-foreground/70">جميع النماذج جاهزة — أضف مفتاح OpenRouter لتفعيل التحليل</p>
+            <p className="text-[12px] font-bold text-foreground/70">جميع النماذج جاهزة — أضف مفتاح الذكاء الاصطناعي لتفعيل التحليل</p>
             <p className="text-[11px] font-bold text-muted-foreground/40 mt-0.5">اذهب إلى تبويب &quot;مفاتيح API&quot; لإضافة المفتاح وتشغيل أي نموذج</p>
           </div>
         </div>
@@ -345,7 +345,7 @@ function AITab() {
 
         <div className="mt-4 px-3 py-2.5 rounded-xl bg-muted/15 border border-border/30">
           <p className="text-[11px] font-bold text-muted-foreground/40">
-            النموذج المختار: <span className="text-foreground/70" dir="ltr">{currentModel.name}</span> — جميع النماذج تعمل عبر OpenRouter بمفتاح واحد
+            النموذج المختار: <span className="text-foreground/70" dir="ltr">{currentModel.name}</span> — جميع النماذج تعمل بمفتاح واحد
           </p>
         </div>
       </div>
@@ -588,8 +588,8 @@ function APIKeysTab() {
   };
 
   const apiKeyFields: { id: keyof ApiKeys; label: string; description: string; placeholder: string }[] = [
-    { id: "apify", label: "Apify API Token", description: "مطلوب لجلب التغريدات من تويتر عبر Twitter Scraper", placeholder: "apify_api_..." },
-    { id: "openrouter", label: "OpenRouter API Key", description: "مطلوب لتحليل المشاعر بالذكاء الاصطناعي — يدعم جميع النماذج", placeholder: "sk-or-..." },
+    { id: "apify", label: "مفتاح جلب البيانات", description: "مطلوب لجلب التغريدات من تويتر عبر Twitter Scraper", placeholder: "apify_api_..." },
+    { id: "openrouter", label: "مفتاح الذكاء الاصطناعي", description: "مطلوب لتحليل المشاعر بالذكاء الاصطناعي — يدعم جميع النماذج", placeholder: "sk-or-..." },
   ];
 
   return (
@@ -831,7 +831,7 @@ function ApifyActorsTab() {
           <span className="text-[11px] font-bold text-muted-foreground/40">{activeCount} من {actors.length} مُفعّل</span>
         </div>
         <p className="text-[11px] font-bold text-muted-foreground/40 leading-relaxed">
-          أدر أدوات الجلب (Scrapers) المتاحة عبر Apify. فعّل أو عطّل كل أداة حسب احتياجاتك. الأدوات النشطة فقط ستُستخدم في عمليات الرصد التلقائي.
+          أدر أدوات الجلب (Scrapers) المتاحة. فعّل أو عطّل كل أداة حسب احتياجاتك. الأدوات النشطة فقط ستُستخدم في عمليات الرصد التلقائي.
         </p>
       </div>
 
@@ -902,8 +902,8 @@ function ApifyActorsTab() {
       {/* Add actor hint */}
       <div className="rounded-2xl bg-muted/20 border border-border/30 p-5">
         <p className="text-[12px] font-bold text-muted-foreground/50 leading-relaxed">
-          لإضافة Actor جديد، ابحث في <span className="text-purple-500" dir="ltr">apify.com/store</span> عن الأداة المطلوبة وانسخ معرّف الـ Actor.
-          تأكد من إضافة مفتاح Apify API في تبويب &quot;مفاتيح API&quot;.
+          لإضافة أداة جلب جديدة، ابحث عن الأداة المطلوبة وانسخ معرّف الأداة.
+          تأكد من إضافة مفتاح جلب البيانات في تبويب &quot;مفاتيح API&quot;.
         </p>
       </div>
     </div>
@@ -1121,7 +1121,7 @@ function TokenCalculatorTab() {
       <div className="rounded-2xl bg-muted/20 border border-border/30 p-5">
         <p className="text-[12px] font-bold text-muted-foreground/50 leading-relaxed">
           التقديرات تقريبية وتعتمد على طبيعة النص. النصوص العربية تستهلك توكنات أكثر من الإنجليزية (~3.5x).
-          الأسعار مأخوذة من OpenRouter وقد تختلف حسب مزود الخدمة.
+          الأسعار تقريبية وقد تختلف حسب مزود الخدمة.
         </p>
       </div>
     </div>

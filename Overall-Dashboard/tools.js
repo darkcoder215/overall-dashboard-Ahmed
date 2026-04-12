@@ -17,7 +17,7 @@ export const STATIC_TOOLS = [
     slug: 'social-listening',
     name_ar: 'أداة الرصد الاجتماعي',
     name_en: 'Social Listening',
-    description_ar: 'رصد المحتوى الاجتماعي، تحليل التغريدات، واصطياد المرشحين عبر LinkedIn وApify.',
+    description_ar: 'رصد المحتوى الاجتماعي، تحليل التغريدات، واصطياد المرشحين عبر LinkedIn.',
     category: 'social',
     icon: 'radio',
     url: '/social-listening/',

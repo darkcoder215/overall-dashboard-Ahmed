@@ -146,11 +146,11 @@ serve(async (req) => {
 
     if (!apifyToken) {
       log.error('STEP-1-VALIDATE', 'APIFY_API_TOKEN not configured');
-      throw new Error('مفتاح Apify غير مُعدّ. أضفه من صفحة الإعدادات → مفاتيح API');
+      throw new Error('مفتاح جلب البيانات غير مُعدّ. أضفه من صفحة الإعدادات → مفاتيح API');
     }
     if (!openrouterKey) {
       log.error('STEP-1-VALIDATE', 'OPENROUTER_API_KEY not configured');
-      throw new Error('مفتاح OpenRouter غير مُعدّ. أضفه من صفحة الإعدادات → مفاتيح API');
+      throw new Error('مفتاح الذكاء الاصطناعي غير مُعدّ. أضفه من صفحة الإعدادات → مفاتيح API');
     }
 
     log.success('STEP-1-VALIDATE', `All validations passed [${requestId}]`, {

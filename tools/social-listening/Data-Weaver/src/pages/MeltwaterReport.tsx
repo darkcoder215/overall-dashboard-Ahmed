@@ -626,7 +626,7 @@ ${sampleNeg.map((t, i) => `${i + 1}. ${t}`).join('\n')}
                 <>
                   <div className="flex items-center justify-center gap-2 text-thmanyah-red">
                     <AlertTriangle className="w-5 h-5" />
-                    <span className="text-[14px] font-bold">يجب إضافة مفتاح OpenRouter API أولاً</span>
+                    <span className="text-[14px] font-bold">يجب إضافة مفتاح الذكاء الاصطناعي أولاً</span>
                   </div>
                   <Link to="/settings" className="inline-flex items-center gap-1.5 text-[12px] font-bold text-thmanyah-blue hover:underline">
                     الذهاب للإعدادات

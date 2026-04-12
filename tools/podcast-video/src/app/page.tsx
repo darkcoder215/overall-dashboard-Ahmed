@@ -238,7 +238,7 @@ export default function DashboardPage() {
             {
               icon: Brain,
               title: 'ذكاء اصطناعي متقدم',
-              desc: 'نماذج Gemini المتطورة لفهم المحتوى العربي والتعرّف على المواضيع والسياقات',
+              desc: 'نماذج ذكاء اصطناعي متطورة لفهم المحتوى العربي والتعرّف على المواضيع والسياقات',
               color: 'blue',
               bg: 'bg-brand-aquapale/30',
               iconBg: 'bg-brand-aquapale',

@@ -152,7 +152,7 @@ const pipelineStatus: Handler = (_req, params) => {
 /** /api/analyze, /api/enrich, /api/chat — AI is disabled in static builds */
 const aiDisabled: Handler = () =>
   err(
-    'خدمات الذكاء الاصطناعي غير مفعّلة في هذا النشر الثابت. شغّل الأداة محلياً لاستخدام OpenRouter.',
+    'خدمات الذكاء الاصطناعي غير مفعّلة في هذا النشر الثابت. شغّل الأداة محلياً لتفعيل التحليل.',
     503,
   );
 

@@ -170,7 +170,7 @@ serve(async (req) => {
     const openRouterApiKey = Deno.env.get('OPENROUTER_API_KEY');
     if (!openRouterApiKey) {
       console.error("ERROR: OPENROUTER_API_KEY not configured");
-      throw new Error('خطأ في الإعداد: مفتاح OpenRouter غير متوفر. يرجى التواصل مع الدعم.');
+      throw new Error('خطأ في الإعداد: مفتاح الذكاء الاصطناعي غير متوفر. يرجى التواصل مع الدعم.');
     }
 
     // Step 2: Prepare audio and validate size (stream-friendly)

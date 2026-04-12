@@ -370,7 +370,7 @@ export default function Admin() {
             </Button>
 
             <p className="text-xs text-center text-muted-foreground">
-              يستخدم التحليل GPT-4o-mini لتصنيف المحتوى وتحديد الشعور
+              يستخدم التحليل الذكاء الاصطناعي لتصنيف المحتوى وتحديد الشعور
             </p>
           </CardContent>
         </Card>

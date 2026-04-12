@@ -137,14 +137,14 @@ export async function POST(request: NextRequest) {
 
       const statusMessages: Record<number, string> = {
         400: "طلب غير صالح — تحقق من إعدادات النموذج",
-        401: "مفتاح API غير صالح — يرجى التحقق من OPENROUTER_API_KEY",
-        402: "رصيد OpenRouter غير كافٍ",
+        401: "مفتاح API غير صالح — يرجى التحقق من إعدادات المفتاح",
+        402: "رصيد خدمة التحليل غير كافٍ",
         403: "الوصول مرفوض — تحقق من صلاحيات مفتاح API",
-        404: `النموذج ${MODEL} غير متوفر على OpenRouter`,
+        404: `النموذج ${MODEL} غير متوفر حالياً`,
         429: "تجاوزت حد الطلبات — يرجى المحاولة بعد قليل",
-        500: "خطأ داخلي في خدمة OpenRouter",
-        502: "خدمة OpenRouter غير متاحة مؤقتاً",
-        503: "خدمة OpenRouter مشغولة — يرجى المحاولة لاحقاً",
+        500: "خطأ داخلي في خدمة التحليل",
+        502: "خدمة التحليل غير متاحة مؤقتاً",
+        503: "خدمة التحليل مشغولة — يرجى المحاولة لاحقاً",
       };
 
       return NextResponse.json(
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
     } catch {
       console.error("Failed to parse OpenRouter response as JSON");
       return NextResponse.json(
-        { error: "رد غير صالح من خدمة التحليل", debug: "OpenRouter returned non-JSON response" },
+        { error: "رد غير صالح من خدمة التحليل", debug: "AI service returned non-JSON response" },
         { status: 502 }
       );
     }

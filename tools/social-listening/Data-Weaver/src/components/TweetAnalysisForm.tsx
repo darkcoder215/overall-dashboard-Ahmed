@@ -298,10 +298,10 @@ export const TweetAnalysisForm = ({ onResults, onAnalysisStart, onError }: Tweet
             <p className="text-[13px] font-bold text-foreground/80">مفاتيح API مطلوبة</p>
             <p className="text-[11px] font-bold text-muted-foreground/50 mt-1">
               {!keysStatus.apify && !keysStatus.openrouter
-                ? "أضف مفتاح Apify و OpenRouter من صفحة الإعدادات لتفعيل التحليل."
+                ? "أضف مفاتيح API المطلوبة من صفحة الإعدادات لتفعيل التحليل."
                 : !keysStatus.apify
-                ? "أضف مفتاح Apify من صفحة الإعدادات لجلب التغريدات."
-                : "أضف مفتاح OpenRouter من صفحة الإعدادات لتحليل المشاعر."}
+                ? "أضف مفتاح جلب البيانات من صفحة الإعدادات لجلب التغريدات."
+                : "أضف مفتاح الذكاء الاصطناعي من صفحة الإعدادات لتحليل المشاعر."}
             </p>
           </div>
         </div>
