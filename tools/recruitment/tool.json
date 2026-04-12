@@ -1,0 +1,10 @@
+{
+  "slug": "recruitment",
+  "name": "Recruitment Intelligence",
+  "nameAr": "ذكاء التوظيف",
+  "type": "vite",
+  "sourceDir": ".",
+  "dist": "dist",
+  "buildCmd": "npm run build",
+  "basePath": "/recruitment/"
+}

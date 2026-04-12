@@ -1,0 +1,86 @@
+/* ═══════════════════════════════════════════════════════
+   Thmanyah Brand Fonts
+   ═══════════════════════════════════════════════════════ */
+
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Reg.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Display'; src: url('/fonts/Thmanyahserifdisplay12-Black.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Serif Text'; src: url('/fonts/Thmanyahseriftext12-Black.otf') format('opentype'); font-weight: 900; font-style: normal; font-display: swap; }
+
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Light.otf') format('opentype'); font-weight: 300; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Regular.otf') format('opentype'); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Medium.otf') format('opentype'); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: 'Thmanyah Sans'; src: url('/fonts/Thmanyahsans12-Bold.otf') format('opentype'); font-weight: 700; font-style: normal; font-display: swap; }
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 37 33% 96%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 155 100% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 37 14% 95%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 37 14% 95%;
+    --muted-foreground: 233 19% 35%;
+    --accent: 155 100% 38%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 8 88% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 38 14% 91%;
+    --input: 38 14% 91%;
+    --ring: 155 100% 38%;
+    --radius: 0.75rem;
+  }
+}
+
+@layer base {
+  * { @apply border-border; }
+  html { direction: rtl; }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Thmanyah Sans', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  }
+  h1, h2, h3 { font-family: 'Thmanyah Serif Display', Georgia, serif; }
+}
+
+@layer utilities {
+  .animate-fade-in-up { animation: fade-in-up 0.5s ease-out both; }
+  .animate-fade-in { animation: fade-in 0.4s ease-out both; }
+  .animate-scale-in { animation: scale-in 0.3s ease-out both; }
+
+  @keyframes fade-in-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .stagger-children > * { animation: fade-in-up 0.4s ease-out both; }
+  .stagger-children > *:nth-child(1) { animation-delay: 0ms; }
+  .stagger-children > *:nth-child(2) { animation-delay: 60ms; }
+  .stagger-children > *:nth-child(3) { animation-delay: 80ms; }
+  .stagger-children > *:nth-child(4) { animation-delay: 120ms; }
+  .stagger-children > *:nth-child(5) { animation-delay: 160ms; }
+  .stagger-children > *:nth-child(6) { animation-delay: 200ms; }
+}
