@@ -1030,6 +1030,18 @@
     </div>
   </div>
 
+  <!--
+    Load the dashboard's shared Supabase config so /shared/supabase-client.js
+    can pick up SUPABASE_URL + SUPABASE_PUBLISHABLE_KEY. In the unified
+    Vercel deploy `build.sh` puts config.js at the site root; in standalone
+    dev (`python3 -m http.server` inside this folder) it 404s harmlessly
+    and `getClient()` returns null — the UI still renders and the
+    edge-function call surfaces a clear "Supabase not configured" error.
+    app.js is a classic script (not a module) because the page has many
+    inline `onclick="funcName()"` handlers that need top-level bindings
+    on `window`; the shared helper is pulled in via dynamic `import()`.
+  -->
+  <script src="/config.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

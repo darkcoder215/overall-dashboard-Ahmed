@@ -21,11 +21,15 @@ const effectiveKey =
 
 export const isSupabaseConfigured = Boolean(effectiveUrl && effectiveKey);
 
+// `persistSession: true` is intentional — the HR tool is hosted under the
+// same origin as the Overall Dashboard, so it reads the dashboard's
+// Supabase session out of shared localStorage and forwards it on edge
+// function calls.
 export const supabase: SupabaseClient | null = isSupabaseConfigured
   ? createClient(effectiveUrl, effectiveKey, {
       auth: {
-        persistSession: false,
-        autoRefreshToken: false,
+        persistSession: true,
+        autoRefreshToken: true,
         detectSessionInUrl: false,
       },
     })

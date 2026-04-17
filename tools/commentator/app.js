@@ -1039,16 +1039,15 @@ function renderHomeRecent() {
   // Prefer the user's real reports; pad with demo cards if we have fewer than 3.
   const list = [...remoteReports, ...DUMMY_REPORTS].slice(0, 3);
 
-  // Render each dummy report as an `<a>` with `target="_blank"` rather
-  // than an `onclick="window.open(...)"` — real links respect the
-  // iframe sandbox's `allow-popups-to-escape-sandbox` flag reliably,
-  // while `window.open` can silently fail in some browsers under
-  // sandboxed parents.
+  // Dummy cards are `<a target="_blank">` to the static demo page; real
+  // cards are `<div role="button">` that open the in-app detail view.
+  // Using real `<a>` elements for dummies keeps `allow-popups-to-escape-sandbox`
+  // working reliably inside the dashboard iframe.
   container.innerHTML = list.map(r => {
     const tag = r.isDummy ? 'a' : 'div';
     const openAttrs = r.isDummy
       ? ` href="dummy.html" target="_blank" rel="noopener"`
-      : '';
+      : ` role="button" tabindex="0" data-remote-id="${r.id}" style="cursor:pointer;"`;
     return `
     <${tag} class="dash-report-card"${openAttrs}>
       <div class="dash-report-teams">
@@ -1070,6 +1069,34 @@ function renderHomeRecent() {
     </${tag}>
   `;
   }).join('');
+
+  wireRemoteCardClicks(container);
+}
+
+// Open a stored `commentator.reports` row in the detail view. The row's
+// `_report` field already matches the shape `populateReport()` expects.
+function openRemoteReport(id) {
+  const row = remoteReports.find(r => r.id === id);
+  if (!row || !row._report) return;
+  state.report = row._report;
+  state.lastReportId = row.id;
+  populateReport(row._report);
+  showView('report');
+  animateReport();
+}
+
+function wireRemoteCardClicks(container) {
+  container.querySelectorAll('[data-remote-id]').forEach(el => {
+    const id = el.getAttribute('data-remote-id');
+    el.addEventListener('click', (e) => {
+      // Let nested links (e.g. video_url) handle their own clicks.
+      if (e.target.closest('a')) return;
+      openRemoteReport(id);
+    });
+    el.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openRemoteReport(id); }
+    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1205,7 +1232,7 @@ function renderReportsGrid() {
     const tag = r.isDummy ? 'a' : 'div';
     const openAttrs = r.isDummy
       ? ` href="dummy.html" target="_blank" rel="noopener"`
-      : '';
+      : ` role="button" tabindex="0" data-remote-id="${r.id}" style="cursor:pointer;"`;
     return `
     <${tag} class="report-list-card"${openAttrs}>
       <div class="report-list-top">
@@ -1245,6 +1272,8 @@ function renderReportsGrid() {
     </${tag}>
   `;
   }).join('');
+
+  wireRemoteCardClicks(grid);
 }
 
 // ═══════════════════════════════════════════════════════════════

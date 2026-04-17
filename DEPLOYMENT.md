@@ -123,13 +123,17 @@ Next.js static export (`output: 'export'`) disables **server
 actions**, **API routes**, and **dynamic server components**. Tools
 that currently depend on server features fall into two buckets:
 
-- **Feedback Platform** — pure client-side today, exports cleanly.
-- **Podcast & Video** and **HR Approval** — have `/api/*` routes for
-  heavier tasks (transcription, analyze). In the unified deploy those
-  routes will 404. Migration path: move the server logic into Supabase
-  Edge Functions (the shared project already hosts the chatbot's
-  functions), or replace `fetch('/api/...')` calls with direct
-  `@supabase/supabase-js` calls backed by RLS-protected tables.
+- **Feedback Platform** — pure client-side, exports cleanly
+  (`hideApi: true` in `tool.json`; no API routes shipped).
+- **HR Approval** — analysis moved from `/api/analyze` to the
+  `hr-approval-analyze` edge function. The route has been deleted,
+  and the submit page now calls `supabase.functions.invoke(...)`.
+- **Podcast & Video** — still has `/api/*` routes for heavier tasks
+  (transcription). In the unified deploy those routes 404. Migration
+  path: move the server logic into Supabase Edge Functions (the
+  shared project already hosts the chatbot's functions) or replace
+  `fetch('/api/...')` calls with direct `@supabase/supabase-js` calls
+  backed by RLS-protected tables.
 - **Commentator** — vanilla HTML, no bundler. Now talks to Supabase
   via `/shared/supabase-client.js` (copied to the site root from
   `Overall-Dashboard/shared/`) and routes OpenRouter through the
@@ -197,7 +201,7 @@ needs to be created manually in the Supabase dashboard.
 In **Supabase Dashboard → Project → Edge Functions → Secrets** set:
 
 - `OPENAI_API_KEY` — used by the chatbot's RAG pipeline
-- `OPENROUTER_API_KEY` — used by `commentator-analyze` and `social-listening-analyze`
+- `OPENROUTER_API_KEY` — used by `commentator-analyze`, `social-listening-analyze`, and `hr-approval-analyze`
 - `SUPABASE_SERVICE_ROLE_KEY` — auto-populated
 
 Then deploy every edge function:
@@ -206,6 +210,7 @@ Then deploy every edge function:
 cd Overall-Dashboard
 supabase functions deploy commentator-analyze        --project-ref hbnvbfcwrfanpayxulih
 supabase functions deploy social-listening-analyze   --project-ref hbnvbfcwrfanpayxulih
+supabase functions deploy hr-approval-analyze        --project-ref hbnvbfcwrfanpayxulih
 
 # chatbot functions still ship from their own folder
 cd "../New Chatbot - Thmanyah"
@@ -218,10 +223,11 @@ supabase functions deploy authenticate     --project-ref hbnvbfcwrfanpayxulih
 
 ## 5. OpenRouter key handling (security)
 
-The OpenRouter key is **no longer** in the browser bundle. Both
-Commentator and Social Listening call a Supabase Edge Function
-(`commentator-analyze` / `social-listening-analyze`) that holds the
-key server-side and requires a signed-in Supabase user. To rotate:
+The OpenRouter key is **no longer** in the browser bundle. Commentator,
+Social Listening, and HR Approval all call a Supabase Edge Function
+(`commentator-analyze` / `social-listening-analyze` /
+`hr-approval-analyze`) that holds the key server-side and requires a
+signed-in Supabase user. To rotate:
 
 1. Generate a new key in the OpenRouter dashboard.
 2. Update `OPENROUTER_API_KEY` in Supabase → Edge Functions → Secrets.

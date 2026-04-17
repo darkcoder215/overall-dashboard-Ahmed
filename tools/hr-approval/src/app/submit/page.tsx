@@ -44,6 +44,7 @@ import {
   APPROVAL_CHAIN_TEMPLATE,
 } from "@/lib/constants";
 import { getSettings } from "@/lib/settings";
+import { supabase } from "@/lib/supabase";
 
 type FormData = {
   requesterName: string;
@@ -310,29 +311,50 @@ function SubmitForm() {
     }, 2200);
 
     try {
-      const res = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formData: form }),
+      // Static export: the old `/api/analyze` route no longer ships. The
+      // analysis now runs through the `hr-approval-analyze` Supabase edge
+      // function, which holds the OpenRouter key server-side and is JWT-gated.
+      if (!supabase) throw new Error("supabase_not_configured");
+      const { data: sessionRes } = await supabase.auth.getSession();
+      const token = sessionRes?.session?.access_token;
+      if (!token) throw new Error("not_signed_in");
+
+      const { data, error: fnError } = await supabase.functions.invoke("hr-approval-analyze", {
+        body: { formData: form },
       });
-      const data = await res.json();
       clearInterval(stepInterval);
       setAnalysisStep(ANALYSIS_STEPS.length - 1);
-
-      // Small delay to let final step render
       await new Promise((r) => setTimeout(r, 400));
 
-      if (!res.ok || data.error) {
+      if (fnError) {
+        const ctx = (fnError as unknown as { context?: Response }).context;
+        let serverError: { error?: string; debug?: string } | null = null;
+        if (ctx) { try { serverError = await ctx.clone().json(); } catch { /* ignore */ } }
+        const msg = serverError?.error || fnError.message || "فشل التحليل";
+        const debugInfo = serverError?.debug ? `\n\nOpenRouter response:\n${serverError.debug}` : "";
+        setAnalysisError(msg + debugInfo);
+        setShowAnalysis(true);
+      } else if (data?.error) {
         const debugInfo = data.debug ? `\n\nOpenRouter response:\n${data.debug}` : "";
         setAnalysisError((data.error || "فشل التحليل") + debugInfo);
         setShowAnalysis(true);
-      } else {
+      } else if (data?.analysis) {
         setAnalysis(data.analysis);
         setShowAnalysis(true);
+      } else {
+        setAnalysisError("رد غير متوقع من خدمة التحليل");
+        setShowAnalysis(true);
       }
-    } catch {
+    } catch (err) {
       clearInterval(stepInterval);
-      setAnalysisError("تعذر الاتصال بخدمة التحليل");
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg === "not_signed_in") {
+        setAnalysisError("سجّل الدخول من لوحة المعلومات الرئيسية أولًا لبدء التحليل");
+      } else if (msg === "supabase_not_configured") {
+        setAnalysisError("لم يتم ضبط Supabase — راجع إعدادات البيئة");
+      } else {
+        setAnalysisError("تعذر الاتصال بخدمة التحليل");
+      }
       setShowAnalysis(true);
     } finally {
       setAnalyzing(false);

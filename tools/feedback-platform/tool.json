@@ -7,5 +7,5 @@
   "dist": "out",
   "buildCmd": "npm run build",
   "basePath": "/feedback-platform",
-  "hideApi": false
+  "hideApi": true
 }
