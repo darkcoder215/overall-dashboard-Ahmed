@@ -6,6 +6,13 @@
   <title>أداة تحليل المعلقين — ثمانية</title>
   <link rel="icon" type="image/png" href="Usable/thamanyah.png">
   <link rel="stylesheet" href="styles.css">
+  <script>
+    // Detect iframe hosting before first paint so the sidebar / top-bar
+    // chrome can collapse without flashing at full size. Wrapped in
+    // try/catch because cross-origin framing throws on `window.top`.
+    try { if (window.self !== window.top) document.documentElement.classList.add('embedded'); }
+    catch { document.documentElement.classList.add('embedded'); }
+  </script>
 </head>
 <body>
 
