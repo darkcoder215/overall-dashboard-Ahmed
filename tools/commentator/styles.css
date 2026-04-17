@@ -1686,3 +1686,78 @@ html.embedded .two-col-section { grid-template-columns: 1fr; }
 @media (max-width: 520px) {
   html.embedded .dash-stats-row { grid-template-columns: 1fr; }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   AUTH BANNER — inline sign-in / signed-in state. Painted at the
+   top of the home hero and again above the upload drop zone so the
+   analyze flow never fails silently on a missing Supabase session.
+   ════════════════════════════════════════════════════════════════ */
+.auth-banner {
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.04);
+}
+.auth-banner[data-state="signed-in"] { background: rgba(0,193,122,0.06); border-color: rgba(0,193,122,0.25); }
+.auth-banner-compact { padding: 14px 18px; }
+
+.auth-banner-inner {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: space-between;
+}
+.auth-banner-info { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.auth-banner-avatar {
+  width: 42px; height: 42px; border-radius: 50%; background: #00C17A; color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0;
+}
+.auth-banner-text { display: flex; flex-direction: column; min-width: 0; }
+.auth-banner-title { font-weight: 700; font-size: 15px; color: #111; }
+.auth-banner-desc { font-size: 13px; color: #555; margin-top: 2px; overflow: hidden; text-overflow: ellipsis; }
+
+.auth-banner-form {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.auth-banner-fields {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.auth-banner-fields input {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 10px;
+  font-size: 14px;
+  font-family: inherit;
+  background: #fafafa;
+  color: #111;
+}
+.auth-banner-fields input:focus {
+  outline: none;
+  border-color: #00C17A;
+  background: #fff;
+  box-shadow: 0 0 0 3px rgba(0,193,122,0.15);
+}
+.auth-banner-fields button { flex-shrink: 0; }
+.auth-banner-error {
+  color: #F24935;
+  font-size: 13px;
+  min-height: 18px;
+}
+.auth-banner-error:empty { display: none; }
+
+/* Embed mode: banner gets a tighter, flatter look that matches the
+   iframe chrome and survives at narrow widths. */
+html.embedded .auth-banner { padding: 14px 16px; border-radius: 14px; }
+html.embedded .auth-banner-avatar { width: 36px; height: 36px; font-size: 14px; }
+html.embedded .auth-banner-title { font-size: 14px; }
+html.embedded .auth-banner-desc { font-size: 12px; }
+@media (max-width: 520px) {
+  .auth-banner-fields { flex-direction: column; }
+  .auth-banner-fields input, .auth-banner-fields button { width: 100%; }
+  .auth-banner-inner { align-items: flex-start; }
+}
+
+/* Dim the analyze button when no session exists so the inline form
+   above it is the obvious next step. The click handler still fires
+   (to scroll / focus the form) — pointer-events stays enabled. */
+#analyzeBtn[aria-disabled="true"] { opacity: 0.55; filter: grayscale(0.3); }

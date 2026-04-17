@@ -107,10 +107,13 @@
       <div class="content-scroll">
         <div class="dashboard-container">
 
+          <!-- Auth banner (populated from JS based on Supabase session) -->
+          <div class="auth-banner" id="authBanner" data-state="loading" hidden></div>
+
           <!-- Welcome Hero -->
           <div class="dash-welcome">
             <div class="dash-welcome-text">
-              <h2 class="dash-welcome-title">مرحبًا، محمد</h2>
+              <h2 class="dash-welcome-title" id="dashWelcomeTitle">مرحبًا بك</h2>
               <p class="dash-welcome-desc">مرحبًا بك في أداة تحليل المعلقين الرياضيين. ارفع تسجيلًا صوتيًا وسيقوم الذكاء الاصطناعي بتحليل الأداء التعليقي وفق 32 معيارًا مهنيًا عالميًا.</p>
               <div class="dash-welcome-actions">
                 <button class="btn btn-accent" onclick="navigateTo('upload')">
@@ -284,6 +287,9 @@
             <h2 class="upload-hero-title">تحليل تعليق مباراة جديدة</h2>
             <p class="upload-hero-desc">ارفع التسجيل الصوتي للتعليق وسيقوم الذكاء الاصطناعي بتحليل الأداء وفق أعلى المعايير المهنية</p>
           </div>
+
+          <!-- Mirrors #authBanner — the analyze flow needs a Supabase session. -->
+          <div class="auth-banner auth-banner-compact" id="authBannerUpload" data-state="loading" hidden></div>
 
           <div class="upload-drop-zone" id="dropZone">
             <div class="drop-zone-content">

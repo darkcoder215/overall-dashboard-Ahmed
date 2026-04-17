@@ -61,6 +61,11 @@ let state = {
 // the existing UI keeps rendering without a second code path.
 let remoteReports = [];
 
+// Current Supabase session user (or null). Mirrored from the shared
+// client so the auth banner, welcome title, analyze button, and
+// `callAPI()` can all read from one place.
+let currentUser = null;
+
 // ── Helpers ──
 const $ = (sel) => document.querySelector(sel);
 const $$ = (sel) => document.querySelectorAll(sel);
@@ -494,7 +499,7 @@ async function callAPI(base64Audio, format) {
   const { callFunction, getUser } = await supa();
   const user = await getUser();
   if (!user) {
-    throw new Error('سجّل الدخول من الشريط الجانبي أولًا لبدء التحليل.');
+    throw new Error('يجب تسجيل الدخول أولًا. استخدم نموذج تسجيل الدخول في أعلى الصفحة ثم أعد المحاولة.');
   }
   try {
     const res = await callFunction(CONFIG.functionName, {
@@ -510,9 +515,14 @@ async function callAPI(base64Audio, format) {
     state.lastReportId = res.report_id || null;
     return res.report;
   } catch (err) {
-    if (err?.status === 401) throw new Error('انتهت الجلسة. يرجى تسجيل الدخول مجددًا.');
-    if (err?.status === 429) throw new Error('تم تجاوز حد الطلبات. أعد المحاولة لاحقًا.');
-    if (err?.status === 502) throw new Error('رد النموذج غير صالح. حاول مرة أخرى.');
+    const s = err?.status;
+    if (s === 401 || s === 403) throw new Error('انتهت الجلسة. يرجى تسجيل الدخول مجددًا.');
+    if (s === 402)              throw new Error('تم استنفاد رصيد خدمة التحليل. تواصل مع المسؤول لتجديد الرصيد.');
+    if (s === 413)              throw new Error('الملف أكبر من الحد المسموح. جرّب ملفًا أصغر أو اقطع التسجيل إلى أجزاء.');
+    if (s === 429)              throw new Error('تم تجاوز حد الطلبات. أعد المحاولة بعد دقيقة.');
+    if (s === 502)              throw new Error('رد النموذج غير صالح. حاول مرة أخرى خلال لحظات.');
+    if (s === 504)              throw new Error('انتهت مهلة التحليل. جرّب تسجيلًا أقصر أو أعد المحاولة.');
+    if (err?.name === 'AbortError') throw err;
     throw err instanceof Error ? err : new Error(String(err));
   }
 }
@@ -1594,6 +1604,151 @@ function showToast(message) {
   setTimeout(() => toast.classList.remove('visible'), 3000);
 }
 
+// ═══════════════════════════════════════════════════════════════
+// AUTH BANNER — sign-in form / signed-in state
+// ═══════════════════════════════════════════════════════════════
+//
+// The analyze endpoint requires a valid Supabase session. When the
+// user lands on the tool without one (either standalone or embedded
+// under the unified dashboard that was launched with REQUIRE_AUTH
+// off), render an inline sign-in form instead of letting the analyze
+// flow fail at submit time. Two slots are painted: one on the home
+// hero, one above the upload drop zone.
+const AUTH_SLOTS = ['authBanner', 'authBannerUpload'];
+
+function renderAuthBanners() {
+  AUTH_SLOTS.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.hidden = false;
+    if (currentUser) {
+      el.dataset.state = 'signed-in';
+      const displayName = currentUser.user_metadata?.full_name
+        || currentUser.user_metadata?.name
+        || currentUser.email
+        || 'مستخدم';
+      el.innerHTML = `
+        <div class="auth-banner-inner">
+          <div class="auth-banner-info">
+            <div class="auth-banner-avatar">${String(displayName).trim().charAt(0).toUpperCase()}</div>
+            <div class="auth-banner-text">
+              <span class="auth-banner-title">أنت مسجّل الدخول</span>
+              <span class="auth-banner-desc">${displayName}</span>
+            </div>
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" data-action="sign-out">تسجيل الخروج</button>
+        </div>
+      `;
+    } else {
+      el.dataset.state = 'signed-out';
+      el.innerHTML = `
+        <form class="auth-banner-form" data-action="sign-in" novalidate>
+          <div class="auth-banner-text">
+            <span class="auth-banner-title">سجّل الدخول لبدء التحليل</span>
+            <span class="auth-banner-desc">استخدم نفس بيانات الدخول المستخدمة في لوحة التحكم الموحّدة.</span>
+          </div>
+          <div class="auth-banner-fields">
+            <input type="email" name="email" autocomplete="email" placeholder="البريد الإلكتروني" required>
+            <input type="password" name="password" autocomplete="current-password" placeholder="كلمة المرور" required>
+            <button type="submit" class="btn btn-primary btn-sm">دخول</button>
+          </div>
+          <div class="auth-banner-error" role="alert" aria-live="polite"></div>
+        </form>
+      `;
+    }
+  });
+  updateWelcomeTitle();
+  updateAnalyzeAvailability();
+}
+
+function updateWelcomeTitle() {
+  const el = document.getElementById('dashWelcomeTitle');
+  if (!el) return;
+  // Settings page already persists a display name in localStorage.
+  // Respect it first so user-provided labels aren't clobbered by the
+  // raw email prefix on every auth refresh.
+  let override = '';
+  try {
+    const saved = JSON.parse(localStorage.getItem('thmanyah_settings') || 'null');
+    override = saved?.userName || '';
+  } catch { /* ignore bad JSON */ }
+  if (override) {
+    el.textContent = `مرحبًا، ${override.split(/\s+/)[0]}`;
+    return;
+  }
+  if (currentUser) {
+    const full = currentUser.user_metadata?.full_name
+      || currentUser.user_metadata?.name
+      || currentUser.email?.split('@')[0]
+      || '';
+    const first = String(full).trim().split(/\s+/)[0] || '';
+    el.textContent = first ? `مرحبًا، ${first}` : 'مرحبًا بك';
+  } else {
+    el.textContent = 'مرحبًا بك في أداة تحليل المعلقين';
+  }
+}
+
+// Keep the analyze button visible so the user always knows it's the
+// next step, but gate its click when no session exists. The inline
+// banner above the drop zone doubles as the call-to-action.
+function updateAnalyzeAvailability() {
+  const btn = document.getElementById('analyzeBtn');
+  if (!btn) return;
+  if (currentUser) {
+    btn.removeAttribute('aria-disabled');
+    btn.title = '';
+  } else {
+    btn.setAttribute('aria-disabled', 'true');
+    btn.title = 'سجّل الدخول من النموذج أعلاه لبدء التحليل';
+  }
+}
+
+async function handleAuthFormSubmit(form) {
+  const emailEl = form.querySelector('input[name="email"]');
+  const pwEl    = form.querySelector('input[name="password"]');
+  const errEl   = form.querySelector('.auth-banner-error');
+  const btn     = form.querySelector('button[type="submit"]');
+  const email   = (emailEl?.value || '').trim();
+  const pw      = pwEl?.value || '';
+  if (errEl) errEl.textContent = '';
+  if (!email || !pw) {
+    if (errEl) errEl.textContent = 'أدخل البريد الإلكتروني وكلمة المرور.';
+    return;
+  }
+  if (btn) { btn.disabled = true; btn.textContent = 'جارٍ الدخول...'; }
+  try {
+    const { signIn, getUser } = await supa();
+    await signIn(email, pw);
+    currentUser = await getUser();
+    renderAuthBanners();
+    loadRemoteReports();
+    showToast('تم تسجيل الدخول');
+  } catch (err) {
+    const msg = err?.message || '';
+    const friendly = /invalid/i.test(msg) || /credentials/i.test(msg)
+      ? 'البريد الإلكتروني أو كلمة المرور غير صحيحة.'
+      : /not configured/i.test(msg)
+        ? 'إعدادات الاتصال غير متوفرة. تواصل مع المسؤول.'
+        : 'تعذّر تسجيل الدخول. حاول مرة أخرى.';
+    if (errEl) errEl.textContent = friendly;
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'دخول'; }
+  }
+}
+
+async function handleSignOutClick() {
+  try {
+    const { signOut } = await supa();
+    await signOut();
+  } catch { /* no-op */ }
+  currentUser = null;
+  remoteReports = [];
+  if (homeInitialized) renderHomeRecent();
+  if (reportsInitialized) renderReportsGrid();
+  renderAuthBanners();
+  showToast('تم تسجيل الخروج');
+}
+
 // ── Initialization ──
 //
 // When the tool runs inside the unified dashboard's iframe, a runtime
@@ -1617,10 +1772,56 @@ document.addEventListener('DOMContentLoaded', () => {
     showError('خطأ في التشغيل', err?.message || 'تعذّر تشغيل الأداة.');
   }
 
+  // Paint the auth banner in a loading state immediately; `getUser()`
+  // replaces it with the real state once Supabase responds.
+  renderAuthBanners();
+
   // Pull the user's persisted reports from Supabase (non-blocking).
-  // Subsequent auth state changes refresh the list transparently.
-  loadRemoteReports();
-  supa().then(({ onAuthChange }) => onAuthChange(() => loadRemoteReports())).catch(() => {});
+  // Subsequent auth state changes refresh the list + banner transparently.
+  supa().then(async ({ getUser, onAuthChange }) => {
+    try { currentUser = await getUser(); } catch { currentUser = null; }
+    renderAuthBanners();
+    loadRemoteReports();
+    onAuthChange((user) => {
+      currentUser = user || null;
+      renderAuthBanners();
+      loadRemoteReports();
+    });
+  }).catch(() => {
+    // Supabase config missing — leave banners rendered in signed-out mode.
+    renderAuthBanners();
+  });
+
+  // Delegate sign-in form submit + sign-out clicks from both banner slots.
+  document.addEventListener('submit', (e) => {
+    const form = e.target.closest('.auth-banner-form[data-action="sign-in"]');
+    if (!form) return;
+    e.preventDefault();
+    handleAuthFormSubmit(form);
+  });
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action="sign-out"]');
+    if (!btn) return;
+    e.preventDefault();
+    handleSignOutClick();
+  });
+
+  // Intercept analyze button clicks when no session exists — the inline
+  // sign-in form above the drop zone is the real CTA, not an alert.
+  // `stopImmediatePropagation` on the capture phase is required to block
+  // the `onclick` handler wired up in `handleFile()`.
+  document.addEventListener('click', (e) => {
+    const btn = e.target.closest('#analyzeBtn');
+    if (!btn) return;
+    if (!currentUser) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const banner = document.getElementById('authBannerUpload');
+      banner?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      banner?.querySelector('input[name="email"]')?.focus();
+      showToast('سجّل الدخول أعلاه أولًا لبدء التحليل');
+    }
+  }, true);
 
   // Sidebar toggle
   const sidebar = document.getElementById('sidebar');
