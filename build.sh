@@ -98,6 +98,48 @@ read_manifest() {
   return 0
 }
 
+# Fail fast on obviously broken manifests instead of waiting until the
+# middle of the build to discover a missing `buildCmd`. Must be called
+# after `read_manifest` so the M_* vars are in scope.
+validate_manifest() {
+  local file="$1"
+  [ -n "${M_SLUG:-}" ]  || { err "manifest $file missing required field: slug"; return 1; }
+  [ -n "${M_NAME:-}" ]  || { err "manifest $file ($M_SLUG) missing required field: name"; return 1; }
+  [ -n "${M_TYPE:-}" ]  || { err "manifest $file ($M_SLUG) missing required field: type"; return 1; }
+  case "$M_TYPE" in
+    static|vite|next) : ;;
+    *) err "manifest $file ($M_SLUG) has unknown type '$M_TYPE' (expected static|vite|next)"; return 1 ;;
+  esac
+  if [ "$M_TYPE" != "static" ]; then
+    [ -n "${M_BUILD_CMD:-}" ] || { err "manifest $file ($M_SLUG, type=$M_TYPE) missing required field: buildCmd"; return 1; }
+    [ -n "${M_DIST:-}" ]      || { err "manifest $file ($M_SLUG, type=$M_TYPE) missing required field: dist"; return 1; }
+  fi
+  [ -n "${M_BASE_PATH:-}" ] || warn "manifest $file ($M_SLUG) has no basePath — absolute asset URLs may break under the dashboard subpath"
+  return 0
+}
+
+# Verify a tool actually produced a usable index.html after copy.
+# Returns non-zero and appends a placeholder + FAILED_TOOLS entry if not.
+smoke_test_tool() {
+  local slug="$1" name="$2"
+  local index="$OUT_DIR/$slug/index.html"
+  if [ ! -f "$index" ]; then
+    err "[$slug] smoke test: $index is missing after build"
+    write_placeholder "$slug" "$name" "missing index.html after build"
+    FAILED_TOOLS+=("$slug")
+    return 1
+  fi
+  local size
+  size=$(wc -c < "$index" 2>/dev/null || echo 0)
+  if [ "${size:-0}" -lt 512 ]; then
+    err "[$slug] smoke test: $index is suspiciously small (${size} bytes)"
+    write_placeholder "$slug" "$name" "index.html is suspiciously small (${size} bytes)"
+    FAILED_TOOLS+=("$slug")
+    return 1
+  fi
+  return 0
+}
+
 should_build() {
   local slug="$1"
   if [ -n "${ONLY_TOOL:-}" ] && [ "$ONLY_TOOL" != "$slug" ]; then
@@ -182,6 +224,9 @@ build_from_manifest() {
   # ── Static tools: plain copy, no build ──
   if [ "$type" = "static" ]; then
     copy_to_out "$slug" "$source_dir"
+    if ! smoke_test_tool "$slug" "$name"; then
+      return 0
+    fi
     ok "[$slug] copied → $OUT_DIR/$slug"
     SUCCESS_TOOLS+=("$slug")
     return 0
@@ -264,6 +309,9 @@ build_from_manifest() {
   fi
 
   copy_to_out "$slug" "$artifact"
+  if ! smoke_test_tool "$slug" "$name"; then
+    return 0
+  fi
   ok "[$slug] built → $OUT_DIR/$slug"
   SUCCESS_TOOLS+=("$slug")
 }
@@ -348,6 +396,12 @@ for manifest in "${manifests[@]}"; do
   tool_root="$( dirname "$manifest" )"
   if ! read_manifest "$manifest"; then
     err "Failed to parse $manifest — skipping"
+    continue
+  fi
+  if ! validate_manifest "$manifest"; then
+    # Unrecoverable — we can't even name the tool reliably, so we skip
+    # rather than write a placeholder. The error from validate_manifest
+    # is already logged.
     continue
   fi
   log "Found tool: $M_SLUG ($M_TYPE)"

@@ -47,12 +47,19 @@ All tools are Arabic-first (`dir="rtl"`) and share Thmanyah branding.
 | Feedback Platform | `npm run dev` | 3000 |
 | **Overall Dashboard** | `bash build.sh && npx serve _site` | 3000 |
 
-### Security findings (pre‑existing)
+### Security findings (current state)
 
-1. **Commentator Tool – hard-coded OpenRouter API key in `app.js:7`.** Rotate
-   and move behind a server-side proxy (Supabase Edge Function that takes the
-   user's JWT and forwards to OpenRouter).
-2. `.env` / `.env.local` are git-ignored. Each tool needs its env vars set on
+1. **OpenRouter keys are no longer in client bundles.** Both Commentator
+   (`tools/commentator/app.js`) and Social Listening
+   (`tools/social-listening/Data-Weaver/src/lib/ai-analysis.ts`) now call
+   Supabase Edge Functions (`commentator-analyze` / `social-listening-analyze`)
+   that hold `OPENROUTER_API_KEY` server-side and require a signed-in user.
+   Rotate the key in Supabase → Edge Functions → Secrets.
+2. **Plaintext passwords in `chatbot.app_users` are deprecated.** The
+   `20260417120100_tools_revision…` migration revokes INSERT/UPDATE/DELETE
+   on that table from `authenticated`/`anon`. Any future auth must go
+   through `auth.users` + `profiles.role`.
+3. `.env` / `.env.local` are git-ignored. Each tool needs its env vars set on
    Vercel (publishable key only, never service-role).
 
 ---
@@ -270,46 +277,56 @@ them once at the project level and every build inherits them.
 
 ## 5 · Adding a new tool
 
-1. Drop the tool folder into the repo root as a sibling of the others.
-2. Teach it to build to a static output (`out/` for Next, `dist/` for Vite,
-   raw HTML for vanilla).
-3. If Next.js: gate `output: 'export'` + `basePath` + `assetPrefix` on the
-   `NEXT_EXPORT` env var. If Vite: honour `BASE_PATH` in `vite.config.ts`.
-4. Add a stanza to `build.sh`:
-   ```bash
-   NEXT_EXPORT=1 NEXT_BASE_PATH="/my-new-tool" \
-     build_tool \
-       "my-new-tool" \
-       "My New Tool" \
-       "$REPO_ROOT/My-New-Tool" \
-       "out" \
-       npm run build
-   ```
-5. Add the row in `Overall-Dashboard/supabase/migrations/…_init_tools_registry.sql`
-   (or insert live via Supabase Studio):
+The build is manifest-driven now: drop a folder with a `tool.json` into
+`tools/` and it gets picked up on the next `build.sh` run. The scaffold
+script takes care of the boilerplate.
+
+```bash
+scripts/new-tool.sh <slug> <type> "Name EN" "اسم عربي"
+# e.g.
+scripts/new-tool.sh sponsor-tracker static "Sponsor Tracker" "تتبع الرعاة"
+```
+
+1. The script creates `tools/<slug>/tool.json` and, for `static` tools, a
+   placeholder `index.html`. For `vite` / `next` tools it creates an
+   empty `app/` folder — wire the framework in yourself (reading
+   `VITE_BASE_PATH` or `NEXT_BASE_PATH` from the environment).
+2. `build.sh validate_manifest` enforces the required fields
+   (`slug`, `name`, `type`, plus `buildCmd`+`dist` for non-static tools)
+   and smoke-tests the output (`_site/<slug>/index.html` must exist and
+   be ≥ 512 B).
+3. Register the tool in `Overall-Dashboard/tools.js` `STATIC_TOOLS` and
+   `TOOL_ACCENTS` so it shows up before Supabase is reachable.
+4. Add a `public.tools` row via a migration so the dashboard's live
+   `refreshTools()` call finds it:
    ```sql
    insert into public.tools
      (slug, name_ar, name_en, description_ar, description_en,
       category, icon, url, position)
    values
-     ('my-new-tool', 'اسم الأداة', 'My New Tool',
+     ('<slug>', 'اسم عربي', 'Name EN',
       'وصف عربي', 'English description',
-      'analytics', 'bar-chart-3', '/my-new-tool/', 70);
+      'analytics', 'bar-chart-3', '/<slug>/', 70);
    ```
-6. Mirror the row in `Overall-Dashboard/tools.js` `STATIC_TOOLS` + add an
-   accent keyword to `TOOL_ACCENTS`.
-7. (Optional) Create an isolated schema for tool data:
-   `Overall-Dashboard/supabase/migrations/YYYYMMDDHHMMSS_init_my_new_tool_schema.sql`.
-   Apply it via `mcp__supabase__apply_migration` or `supabase db push`.
-8. Commit + push. Vercel rebuilds everything; the new card appears
+5. (Optional) Create an isolated schema for the tool's data:
+   `Overall-Dashboard/supabase/migrations/YYYYMMDDHHMMSS_init_<slug>_schema.sql`.
+6. (Optional) If the tool needs an LLM: add an edge function under
+   `Overall-Dashboard/supabase/functions/<slug>-analyze/index.ts` that
+   proxies OpenRouter and require a signed-in user — mirror the
+   `commentator-analyze` / `social-listening-analyze` functions instead
+   of shipping a key in the bundle.
+7. Commit + push. Vercel rebuilds everything; the new card appears
    automatically.
 
 ---
 
 ## 6 · Roadmap
 
-- [ ] Centralise OpenRouter / OpenAI calls behind Supabase Edge Functions so
-      no tool ships an API key in the browser (start with Commentator).
+- [x] Centralise OpenRouter / OpenAI calls behind Supabase Edge Functions so
+      no tool ships an API key in the browser (Commentator + Social Listening
+      done via `commentator-analyze` / `social-listening-analyze`).
+- [ ] Move the HR Approval tool's OpenRouter usage behind a matching edge
+      function (pattern is now established).
 - [ ] `log-tool-open` Edge Function that writes `public.audit_logs` **and**
       issues a signed iframe src — gives per-role auditing for free.
 - [ ] Per-role visibility (`allowed_roles text[]` on `public.tools` + RLS)

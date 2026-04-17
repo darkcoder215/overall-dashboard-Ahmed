@@ -1,11 +1,44 @@
 /**
  * AI Analysis service — analyzes social media comments
  * across all platforms using AI.
+ *
+ * The OpenRouter key used to live inline here. It now sits server-side
+ * in the `social-listening-analyze` edge function; this module posts
+ * OpenRouter-compatible chat payloads to the function and receives the
+ * raw response. See
+ * `Overall-Dashboard/supabase/functions/social-listening-analyze/index.ts`.
  */
+import { supabase } from "@/integrations/supabase/client";
 import { loadSelectedModel, loadMetrics, buildMetricsPromptSection } from "@/lib/settings";
 
-const AI_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-const AI_API_KEY = "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";
+const AI_FUNCTION = "social-listening-analyze";
+
+async function callAi(payload: {
+  model: string;
+  messages: unknown[];
+  max_tokens?: number;
+  temperature?: number;
+  response_format?: unknown;
+}): Promise<any> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("الرجاء تسجيل الدخول قبل تشغيل التحليل.");
+
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/${AI_FUNCTION}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`AI proxy error ${res.status}: ${text.slice(0, 200)}`);
+  }
+  return res.json();
+}
 
 /* ── Types ── */
 
@@ -358,26 +391,19 @@ const BATCH_SIZE = 15;
 
 async function analyzeBatch(
   comments: CommentInput[],
-  apiKey: string,
   modelId: string,
 ): Promise<AnalyzedItem[]> {
   const numbered = comments
     .map((c, i) => `[${i + 1}] (${c.platform}) ${c.text}`)
     .join("\n");
 
-  const res = await fetch(AI_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: modelId,
-      max_tokens: 4096,
-      messages: [
-        {
-          role: "system",
-          content: `أنت محلل مشاعر متخصص في النصوص العربية لمنصات التواصل الاجتماعي.
+  const data = await callAi({
+    model: modelId,
+    max_tokens: 4096,
+    messages: [
+      {
+        role: "system",
+        content: `أنت محلل مشاعر متخصص في النصوص العربية لمنصات التواصل الاجتماعي.
 حلل التعليقات المرقمة وأرجع JSON فقط.
 
 لكل تعليق أرجع:
@@ -385,20 +411,13 @@ async function analyzeBatch(
 ${buildMetricsPromptSection(loadMetrics())}
 
 أجب بصيغة JSON فقط: {"results":[...]}`,
-        },
-        { role: "user", content: numbered },
-      ],
-      response_format: { type: "json_object" },
-      temperature: 0,
-    }),
+      },
+      { role: "user", content: numbered },
+    ],
+    response_format: { type: "json_object" },
+    temperature: 0,
   });
 
-  if (!res.ok) {
-    const errText = await res.text().catch(() => "");
-    throw new Error(`AI API error ${res.status}: ${errText}`);
-  }
-
-  const data = await res.json();
   const content = data.choices?.[0]?.message?.content || "{}";
   const parsed = safeParseJSON(content);
   const results = parsed?.results || parsed?.tweets || [];
@@ -419,7 +438,6 @@ ${buildMetricsPromptSection(loadMetrics())}
 
 async function generateReport(
   items: AnalyzedItem[],
-  apiKey: string,
   modelId: string,
 ): Promise<AiReport> {
   const total = items.length;
@@ -492,23 +510,13 @@ ${sampleNeg.map((t, i) => `${i + 1}. ${t}`).join("\n")}
 3-5 لكل قسم. بالعربية. ركز على رؤى قابلة للتنفيذ وتوصيات عملية للفريق.
 أجب بصيغة JSON فقط.`;
 
-  const res = await fetch(AI_API_URL, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model: modelId,
-      max_tokens: 4096,
-      messages: [{ role: "user", content: prompt }],
-      response_format: { type: "json_object" },
-      temperature: 0,
-    }),
+  const data = await callAi({
+    model: modelId,
+    max_tokens: 4096,
+    messages: [{ role: "user", content: prompt }],
+    response_format: { type: "json_object" },
+    temperature: 0,
   });
-
-  if (!res.ok) throw new Error(`Report generation failed: ${res.status}`);
-  const data = await res.json();
   const content = data.choices?.[0]?.message?.content || "{}";
   const parsed = safeParseJSON(content);
 
@@ -539,7 +547,6 @@ export async function runFullAnalysis(
   comments: CommentInput[],
   onProgress: ProgressCallback,
 ): Promise<AnalysisResult> {
-  const apiKey = AI_API_KEY;
   const modelId = loadSelectedModel();
 
   // Phase 1: Batch sentiment analysis
@@ -556,7 +563,7 @@ export async function runFullAnalysis(
   for (let i = 0; i < batches.length; i += PARALLEL) {
     const chunk = batches.slice(i, i + PARALLEL);
     const results = await Promise.allSettled(
-      chunk.map((batch) => analyzeBatch(batch, apiKey, modelId)),
+      chunk.map((batch) => analyzeBatch(batch, modelId)),
     );
 
     for (const r of results) {
@@ -578,7 +585,7 @@ export async function runFullAnalysis(
 
   // Phase 2: Generate report
   onProgress({ phase: "generating-report", percent: 75, message: "جاري إنشاء التقرير الشامل..." });
-  const report = await generateReport(allItems, apiKey, modelId);
+  const report = await generateReport(allItems, modelId);
 
   // Aggregate stats
   const sentimentCounts: Record<string, number> = {};

@@ -756,6 +756,18 @@ input, select, textarea { font-family: inherit; }
 .activity-item-title { font-weight: 700; font-size: 14px; }
 .activity-item-sub { font-size: 12px; color: var(--color-muted); }
 .activity-item-time { font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
+.activity-row {
+  display: grid;
+  grid-template-columns: 140px 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  background: var(--color-off-white);
+}
+.activity-action { font-weight: 700; font-size: 14px; color: var(--accent); }
+.activity-target { font-size: 14px; color: var(--color-ink); }
+.activity-time { font-size: 12px; color: var(--color-muted); font-variant-numeric: tabular-nums; }
 
 /* ════════════════════════════════════════════════════════════════
    SETTINGS CARD
@@ -983,11 +995,6 @@ input, select, textarea { font-family: inherit; }
   25%  { opacity: 1; }
   100% { opacity: 0; transform: translate(var(--spx, 0), var(--spy, -40px)) scale(1); }
 }
-@keyframes confetti-fall {
-  0%   { opacity: 0; transform: translate3d(0, -20vh, 0) rotate(0deg); }
-  10%  { opacity: 1; }
-  100% { opacity: 0; transform: translate3d(var(--cfx, 0), 110vh, 0) rotate(var(--cfr, 720deg)); }
-}
 @keyframes nav-item-tick {
   /* Active nav item's accent bar grows into place. */
   from { height: 0; }
@@ -1071,22 +1078,6 @@ input, select, textarea { font-family: inherit; }
 
 /* ── Toast gets the bounce treatment ── */
 .toast { animation: toast-bounce 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
-
-/* ── Easter-egg confetti layer ── */
-.confetti-layer {
-  position: fixed; inset: 0;
-  pointer-events: none;
-  z-index: 3000;
-  overflow: hidden;
-}
-.confetti {
-  position: absolute;
-  top: -20px;
-  width: 10px; height: 14px;
-  border-radius: 2px;
-  will-change: transform, opacity;
-  animation: confetti-fall var(--cfd, 3.2s) cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
-}
 
 /* ── Chip interaction: squish on tap ── */
 .chip:active { transform: scale(0.94); }

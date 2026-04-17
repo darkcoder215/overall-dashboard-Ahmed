@@ -31,7 +31,6 @@ function init() {
   loadTheme();
   attachNavListeners();
   attachSearchListeners();
-  attachDelightListeners();
   initSupabase();
   bootstrap();
 }
@@ -169,6 +168,7 @@ window.navigateTo = function navigateTo(view) {
 
   updateTopBarActions();
   renderAll();
+  if (view === 'activity') renderActivityView();
 
   // Close mobile sidebar when navigating.
   document.getElementById('sidebar').classList.remove('open');
@@ -728,126 +728,55 @@ function showToast(msg) {
 }
 
 // ════════════════════════════════════════════════════════════════
-// Delight layer — easter eggs and micro-interactions
+// Activity view — lists the user's recent audit_log entries.
+// Rendered lazily: `navigateTo('activity')` triggers a refresh so
+// the table query only fires when the tab is actually visible.
 // ════════════════════════════════════════════════════════════════
 
-function attachDelightListeners() {
-  // ── 7-click logo easter egg ───────────────────────────────────
-  // Clicking the sidebar logo seven times in under 3 seconds fires
-  // a small confetti burst and a friendly toast. Rewards the curious.
-  const logo = document.querySelector('.sidebar-logo');
-  if (logo) {
-    let taps = 0;
-    let resetTimer = null;
-    logo.addEventListener('click', () => {
-      taps += 1;
-      logo.classList.remove('logo-pop');
-      void logo.offsetWidth;
-      logo.classList.add('logo-pop');
-      clearTimeout(resetTimer);
-      resetTimer = setTimeout(() => { taps = 0; }, 3000);
-      if (taps >= 7) {
-        taps = 0;
-        dropConfetti(60);
-        showToast('٧ مرات؟ أنت مصمّم حقيقي. 🎉');
-      } else if (taps === 5) {
-        // Nudge at 5 — "two to go".
-        showToast('اثنتان بعد… 👀');
-      }
-    });
-  }
+const ACTION_LABELS = {
+  login:       'تسجيل الدخول',
+  open:        'فتح أداة',
+  favorite:    'إضافة للمفضلة',
+  unfavorite:  'إزالة من المفضلة',
+};
 
-  // ── Konami code ────────────────────────────────────────────────
-  // ↑ ↑ ↓ ↓ ← → ← → B A  — fires a bigger confetti shower and the
-  // secret "developer mode" toast. Doesn't unlock anything, just fun.
-  const konami = [
-    'ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown',
-    'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight',
-    'b', 'a',
-  ];
-  let kIdx = 0;
-  window.addEventListener('keydown', (e) => {
-    // Ignore when typing in inputs.
-    const tag = (e.target && e.target.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-    const key = e.key.length === 1 ? e.key.toLowerCase() : e.key;
-    if (key === konami[kIdx]) {
-      kIdx += 1;
-      if (kIdx === konami.length) {
-        kIdx = 0;
-        dropConfetti(120);
-        showToast('وضع المطوّر مفعّل! (ليس فعلاً 🙂)');
-      }
-    } else {
-      // Allow restart if the first key of the sequence matches.
-      kIdx = key === konami[0] ? 1 : 0;
-    }
-  });
-
-  // ── "T" for Thmanyah secret: pressing the key 'T' three times in a
-  //    row turns the page theme upside down for a second. Tiny joke.
-  let tTaps = 0;
-  let tTimer = null;
-  window.addEventListener('keydown', (e) => {
-    const tag = (e.target && e.target.tagName) || '';
-    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
-    if (e.key !== 't' && e.key !== 'T') { tTaps = 0; return; }
-    tTaps += 1;
-    clearTimeout(tTimer);
-    tTimer = setTimeout(() => { tTaps = 0; }, 1200);
-    if (tTaps >= 3) {
-      tTaps = 0;
-      const main = document.querySelector('.main-content');
-      if (!main) return;
-      main.style.transition = 'transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1)';
-      main.style.transform = 'rotate(360deg)';
-      setTimeout(() => {
-        main.style.transform = '';
-        setTimeout(() => { main.style.transition = ''; }, 820);
-      }, 820);
-      showToast('دوّارة ثمانية 🌀');
-    }
-  });
+function renderActivityPlaceholder(message) {
+  const mount = document.getElementById('activityList');
+  if (!mount) return;
+  mount.innerHTML = `<div class="empty-state"><p>${escapeHtml(message)}</p></div>`;
 }
 
-// Spawns `count` confetti particles that fall from the top of the viewport.
-// Uses CSS variables to randomize horizontal drift, duration, and spin.
-function dropConfetti(count = 60) {
-  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if (reduce) return;
-  let layer = document.querySelector('.confetti-layer');
-  if (!layer) {
-    layer = document.createElement('div');
-    layer.className = 'confetti-layer';
-    document.body.appendChild(layer);
-  }
-  const colors = [
-    '#00C17A', '#0072F9', '#F24935', '#FFBC0A', '#FF9172', '#FF4D00',
-  ];
-  for (let i = 0; i < count; i++) {
-    const piece = document.createElement('span');
-    piece.className = 'confetti';
-    const left = Math.random() * 100;
-    const drift = (Math.random() - 0.5) * 200; // ±100px horizontal
-    const dur = 2.4 + Math.random() * 1.8;
-    const rot = 360 + Math.random() * 720;
-    const color = colors[i % colors.length];
-    piece.style.left = left + 'vw';
-    piece.style.background = color;
-    piece.style.setProperty('--cfx', drift + 'px');
-    piece.style.setProperty('--cfd', dur + 's');
-    piece.style.setProperty('--cfr', rot + 'deg');
-    piece.style.animationDelay = (Math.random() * 0.4) + 's';
-    // Alternate shapes: rectangles and circles.
-    if (i % 3 === 0) piece.style.borderRadius = '50%';
-    if (i % 5 === 0) piece.style.width = '6px';
-    layer.appendChild(piece);
-    setTimeout(() => piece.remove(), (dur + 0.6) * 1000);
-  }
-  // Tidy up the layer a moment after the longest animation completes.
-  setTimeout(() => {
-    if (layer && !layer.children.length) layer.remove();
-  }, 5000);
+async function renderActivityView() {
+  const mount = document.getElementById('activityList');
+  if (!mount) return;
+  if (!state.supabase)  return renderActivityPlaceholder('الاتصال بقاعدة البيانات غير متوفر.');
+  if (!state.user)      return renderActivityPlaceholder('سجّل الدخول لعرض سجل نشاطك.');
+
+  renderActivityPlaceholder('جارٍ التحميل...');
+
+  const { data, error } = await state.supabase
+    .from('audit_logs')
+    .select('id, action, tool_id, metadata, created_at')
+    .order('created_at', { ascending: false })
+    .limit(50);
+  if (error) return renderActivityPlaceholder('تعذّر تحميل السجل: ' + error.message);
+  if (!data || data.length === 0) return renderActivityPlaceholder('لا يوجد نشاط حتى الآن.');
+
+  const toolById = new Map(state.tools.map(t => [t.id, t]));
+  mount.innerHTML = data.map(row => {
+    const tool = row.tool_id ? toolById.get(row.tool_id) : null;
+    const label = ACTION_LABELS[row.action] || row.action || 'حدث';
+    const when = new Date(row.created_at).toLocaleString('ar-SA', {
+      dateStyle: 'medium', timeStyle: 'short',
+    });
+    return `
+      <div class="activity-row">
+        <span class="activity-action">${escapeHtml(label)}</span>
+        <span class="activity-target">${escapeHtml(tool?.name_ar || '')}</span>
+        <span class="activity-time">${escapeHtml(when)}</span>
+      </div>
+    `;
+  }).join('');
 }
 
 // ── Boot ─────────────────────────────────────────────────────────

@@ -3,13 +3,25 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 // ── Configuration ──
+// The OpenRouter key used to live here in the browser bundle. It has
+// been removed; the tool now calls the `commentator-analyze` edge
+// function which holds the key server-side. See
+// `Overall-Dashboard/supabase/functions/commentator-analyze/index.ts`.
 const CONFIG = {
-  apiKey: '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',
   model: 'google/gemini-2.5-pro',
-  apiUrl: 'https://openrouter.ai/api/v1/chat/completions',
+  functionName: 'commentator-analyze',
   maxFileSizeMB: 200,
   warnFileSizeMB: 50,
 };
+
+// Lazy-loaded Supabase helpers (pulled from the shared module so every
+// tool speaks to Supabase the same way). See /shared/supabase-client.js.
+let _supa = null;
+async function supa() {
+  if (_supa) return _supa;
+  _supa = await import('/shared/supabase-client.js');
+  return _supa;
+}
 
 const FORMAT_MAP = {
   'audio/wav': 'wav', 'audio/wave': 'wav', 'audio/x-wav': 'wav',
@@ -40,7 +52,14 @@ let state = {
   abortController: null,
   timerInterval: null,
   timerSeconds: 0,
+  lastReportId: null,
 };
+
+// Reports persisted in `commentator.reports` for the current user.
+// Populated by `loadRemoteReports()` on auth change / boot. The
+// `getFilteredReports()` helper merges these with `DUMMY_REPORTS` so
+// the existing UI keeps rendering without a second code path.
+let remoteReports = [];
 
 // ── Helpers ──
 const $ = (sel) => document.querySelector(sel);
@@ -438,6 +457,8 @@ async function startAnalysis() {
     populateReport(result);
     showView('report');
     animateReport();
+    // Background refresh so the new row shows up on the home/reports views.
+    loadRemoteReports();
 
   } catch (err) {
     stopTimer();
@@ -464,257 +485,42 @@ function sleep(ms) {
 }
 
 // ── API Call ──
+//
+// Routes through the `commentator-analyze` Supabase edge function, which
+// holds the OpenRouter API key server-side and inserts a row in
+// `commentator.reports` scoped to the signed-in user. Requires an auth
+// session; anon calls are rejected by the function.
 async function callAPI(base64Audio, format) {
-  state.abortController = new AbortController();
-
-  const prompt = buildAnalysisPrompt();
-
-  const payload = {
-    model: CONFIG.model,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: prompt },
-          {
-            type: 'input_audio',
-            input_audio: {
-              data: base64Audio,
-              format: format,
-            },
-          },
-        ],
-      },
-    ],
-  };
-
-  let response;
-  let lastError;
-
-  // Retry up to 3 times for network errors
-  for (let attempt = 0; attempt < 3; attempt++) {
-    try {
-      response = await fetch(CONFIG.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${CONFIG.apiKey}`,
-          'Content-Type': 'application/json',
-          'HTTP-Referer': window.location.href,
-          'X-Title': 'Thmanyah Commentator Analysis Tool',
-        },
-        body: JSON.stringify(payload),
-        signal: state.abortController.signal,
-      });
-      break;
-    } catch (err) {
-      if (err.name === 'AbortError') throw err;
-      lastError = err;
-      if (attempt < 2) await sleep(2000 * Math.pow(2, attempt));
-    }
+  const { callFunction, getUser } = await supa();
+  const user = await getUser();
+  if (!user) {
+    throw new Error('سجّل الدخول من الشريط الجانبي أولًا لبدء التحليل.');
   }
-
-  if (!response) {
-    // A "Failed to fetch" TypeError here almost always means the
-    // browser blocked the cross-origin request — likely because the
-    // tool is embedded inside the unified dashboard's iframe and the
-    // `HTTP-Referer` header is being rejected. Make the message
-    // concrete so a support request is easy to triage.
-    const hint = /Failed to fetch|NetworkError|CORS/i.test(lastError?.message || '')
-      ? ' (قد يكون السبب منع المتصفح للطلب من داخل الإطار — جرّب فتح الأداة في تبويب مستقل).'
-      : '';
-    throw new Error((lastError?.message || 'فشل الاتصال بالخادم. تأكد من اتصال الإنترنت وحاول مرة أخرى.') + hint);
-  }
-
-  if (!response.ok) {
-    const errData = await response.json().catch(() => ({}));
-    const errMsg = errData?.error?.message || '';
-
-    if (response.status === 401) {
-      throw new Error('مفتاح API غير صالح. يرجى التحقق من المفتاح.');
-    } else if (response.status === 429) {
-      throw new Error('تم تجاوز حد الطلبات. يرجى الانتظار قليلًا ثم المحاولة مرة أخرى.');
-    } else if (response.status === 413) {
-      throw new Error('الملف الصوتي كبير جدًا. يرجى ضغطه أو اقتصاصه ثم المحاولة مرة أخرى.');
-    } else {
-      throw new Error(errMsg || `خطأ من الخادم (${response.status}). يرجى المحاولة لاحقًا.`);
-    }
-  }
-
-  const data = await response.json();
-
-  if (!data.choices || !data.choices[0]?.message?.content) {
-    throw new Error('لم يتم استلام رد من النموذج. يرجى المحاولة مرة أخرى.');
-  }
-
-  const rawContent = data.choices[0].message.content;
-  return parseApiResponse(rawContent);
-}
-
-function buildAnalysisPrompt() {
-  return `أنت خبير متخصص في تقييم وتحليل أداء المعلقين الرياضيين في مباريات كرة القدم وفقًا لأعلى المعايير المهنية العالمية المعتمدة في التقييم الإعلامي الرياضي.
-
-استمع بعناية شديدة إلى التسجيل الصوتي المرفق وقم بالمهام التالية:
-
-1. حدد معلومات المباراة من سياق التعليق: اسما الفريقين، النتيجة، اسم البطولة والجولة، والتاريخ إن ذُكر.
-2. حدد اسم المعلق والقناة الناقلة.
-3. أنشئ نصًا كاملًا (تفريغ) للتعليق مع التوقيت الزمني الدقيق بالدقائق وتحديد هوية كل متحدث (معلق رئيسي، محلل، مراسل، إلخ).
-4. قيّم الأداء عبر 8 محاور رئيسية، كل محور يحتوي على 4 معايير فرعية بدرجة من 0 إلى 100:
-
-   المحور 1 — الأداء الصوتي: وضوح النطق والإلقاء، التنوع في طبقات الصوت، إيقاع وسرعة الكلام، إدارة فترات الصمت
-   المحور 2 — اللغة والأسلوب: سلامة اللغة العربية، ثراء المفردات، البلاغة والتعبيرات، الأسلوب السردي
-   المحور 3 — التحليل التكتيكي: قراءة التشكيلات والخطط، تفسير القرارات التكتيكية، دقة المعلومات والإحصائيات، الإعداد والتحضير المسبق
-   المحور 4 — تغطية الأحداث: وصف اللعب لحظة بلحظة، تعليق الأهداف واللحظات الحاسمة، التزامن مع الصورة، تغطية الإعادات
-   المحور 5 — التوازن العاطفي: الحياد وعدم الانحياز، التعامل مع قرارات الحكم، إدارة الانفعالات، الاحترافية في المواقف الصعبة
-   المحور 6 — التفاعل مع المشاهد: بناء الإثارة والتشويق، إضافة قيمة معرفية، التواصل مع المحلل، الخاتمة والتلخيص
-   المحور 7 — المعرفة الرياضية: معرفة تاريخ اللاعبين، الإلمام بسياق البطولة، المراجع التاريخية والمقارنات، معرفة القوانين واللوائح
-   المحور 8 — الإبداع والتميز: أسلوب تعليق فريد، عبارات وتعبيرات لا تُنسى، القدرة على السرد القصصي، اتساق الهوية الشخصية
-
-5. حدد أبرز اللحظات المحورية في التعليق مع التوقيت.
-6. اذكر 3-5 نقاط قوة و2-4 مجالات تحتاج تحسين.
-7. احسب الدرجة الكلية كمعدل مرجح لدرجات المحاور.
-8. استخرج إحصائيات الأداء: عدد الكلمات التقريبي في الدقيقة، إجمالي الكلمات، نسبة الصمت، عدد المفردات الفريدة، نسبة التكرار، عدد الأخطاء المعلوماتية، عدد التفاعلات مع المحلل.
-9. اقتبس 3-4 من أبرز العبارات المميزة التي قالها المعلق حرفيًا مع التوقيت.
-10. قدّر مستوى الحماس التعليقي عبر المباراة كمصفوفة من 0-100 لكل 5 دقائق.
-
-مهم جدًا: استخدم الأرقام الإنجليزية (0-9) وليس العربية. أعد جميع النتائج حصريًا بصيغة JSON صالحة (بدون أي نص قبلها أو بعدها، وبدون علامات markdown). استخدم الهيكل التالي بالضبط:
-
-{
-  "match_info": {"team_a": "...", "team_b": "...", "score": "X - X", "competition": "...", "date": "..."},
-  "commentator": {"name": "...", "channel": "..."},
-  "overall": {"score": 79, "rating": "جيد جدًا", "summary": "ملخص الأداء في 2-3 جمل"},
-  "tags": ["وصف قصير 1", "وصف قصير 2", "وصف قصير 3"],
-  "categories": [
-    {"name": "الأداء الصوتي", "score": 85, "rating": "جيد جدًا", "criteria": [
-      {"name": "وضوح النطق والإلقاء", "score": 88, "note": "ملاحظة تفصيلية"},
-      {"name": "التنوع في طبقات الصوت", "score": 84, "note": "..."},
-      {"name": "إيقاع وسرعة الكلام", "score": 82, "note": "..."},
-      {"name": "إدارة فترات الصمت", "score": 80, "note": "..."}
-    ]},
-    {"name": "اللغة والأسلوب", "score": 82, "rating": "جيد جدًا", "criteria": [...]},
-    {"name": "التحليل التكتيكي", "score": 71, "rating": "جيد", "criteria": [...]},
-    {"name": "تغطية الأحداث", "score": 88, "rating": "ممتاز", "criteria": [...]},
-    {"name": "التوازن العاطفي", "score": 65, "rating": "مقبول", "criteria": [...]},
-    {"name": "التفاعل مع المشاهد", "score": 83, "rating": "جيد جدًا", "criteria": [...]},
-    {"name": "المعرفة الرياضية", "score": 77, "rating": "جيد", "criteria": [...]},
-    {"name": "الإبداع والتميز", "score": 80, "rating": "جيد جدًا", "criteria": [...]}
-  ],
-  "performance_stats": {
-    "words_per_minute": 142,
-    "total_words": 12847,
-    "silence_percentage": 18,
-    "unique_vocabulary": 1243,
-    "repetition_rate": 7.2,
-    "factual_errors": 2,
-    "analyst_interactions": 14,
-    "peak_excitement_count": 8
-  },
-  "notable_quotes": [
-    {"time": "23'", "text": "اقتباس حرفي مميز من المعلق", "context": "سياق الاقتباس"},
-    {"time": "67'", "text": "...", "context": "..."}
-  ],
-  "excitement_timeline": [60, 45, 70, 80, 55, 90, 40, 65, 75, 85, 95, 70, 80, 60, 50, 88, 92, 45],
-  "key_moments": [
-    {"time": "12'", "type": "excellent", "description": "وصف اللحظة"},
-    {"time": "55'", "type": "note", "description": "..."},
-    {"time": "78'", "type": "needs_improvement", "description": "..."}
-  ],
-  "strengths": ["نقطة قوة 1", "نقطة قوة 2", "نقطة قوة 3"],
-  "improvements": ["مجال تحسين 1", "مجال تحسين 2"],
-  "transcription": [
-    {"time": "00:00", "speaker": "المعلق", "text": "نص الكلام"},
-    {"time": "00:30", "speaker": "المحلل", "text": "نص الكلام"}
-  ]
-}`;
-}
-
-function parseApiResponse(rawContent) {
-  let text = rawContent.trim();
-
-  // Strip markdown code blocks if present
-  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '');
-  text = text.trim();
-
-  // Try direct parse
   try {
-    const parsed = JSON.parse(text);
-    return validateReport(parsed);
-  } catch (e) { /* continue */ }
-
-  // Try extracting JSON object from text
-  const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (jsonMatch) {
-    try {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return validateReport(parsed);
-    } catch (e) { /* continue */ }
+    const res = await callFunction(CONFIG.functionName, {
+      audio_base64: base64Audio,
+      audio_format: format,
+      model: CONFIG.model,
+      persist: true,
+    });
+    if (!res || !res.report) {
+      throw new Error('لم يتم استلام تقرير من الخادم.');
+    }
+    // Remember the persisted id so the caller can link from the reports list.
+    state.lastReportId = res.report_id || null;
+    return res.report;
+  } catch (err) {
+    if (err?.status === 401) throw new Error('انتهت الجلسة. يرجى تسجيل الدخول مجددًا.');
+    if (err?.status === 429) throw new Error('تم تجاوز حد الطلبات. أعد المحاولة لاحقًا.');
+    if (err?.status === 502) throw new Error('رد النموذج غير صالح. حاول مرة أخرى.');
+    throw err instanceof Error ? err : new Error(String(err));
   }
-
-  // Try fixing common issues: trailing commas
-  try {
-    const fixed = text.replace(/,\s*([}\]])/g, '$1');
-    const parsed = JSON.parse(fixed);
-    return validateReport(parsed);
-  } catch (e) { /* continue */ }
-
-  throw new Error('لم يتمكن النظام من تحليل استجابة النموذج. يرجى المحاولة مرة أخرى.\n\nالاستجابة الخام:\n' + text.substring(0, 500));
 }
 
-function validateReport(data) {
-  // Ensure required fields exist with defaults
-  const report = {
-    match_info: {
-      team_a: data.match_info?.team_a || 'غير محدد',
-      team_b: data.match_info?.team_b || 'غير محدد',
-      score: data.match_info?.score || 'غير محدد',
-      competition: data.match_info?.competition || 'غير محدد',
-      date: data.match_info?.date || 'غير محدد',
-    },
-    commentator: {
-      name: data.commentator?.name || 'غير محدد',
-      channel: data.commentator?.channel || 'غير محدد',
-    },
-    overall: {
-      score: Math.min(100, Math.max(0, data.overall?.score ?? 50)),
-      rating: data.overall?.rating || getScoreRating(data.overall?.score ?? 50),
-      summary: data.overall?.summary || '',
-    },
-    tags: Array.isArray(data.tags) ? data.tags.slice(0, 4) : [],
-    categories: [],
-    key_moments: [],
-    strengths: Array.isArray(data.strengths) ? data.strengths : [],
-    improvements: Array.isArray(data.improvements) ? data.improvements : [],
-    transcription: Array.isArray(data.transcription) ? data.transcription : [],
-    performance_stats: data.performance_stats || null,
-    notable_quotes: Array.isArray(data.notable_quotes) ? data.notable_quotes : [],
-    excitement_timeline: Array.isArray(data.excitement_timeline) ? data.excitement_timeline : [],
-    video_url: data.video_url || '',
-  };
 
-  // Validate categories
-  if (Array.isArray(data.categories)) {
-    report.categories = data.categories.map(cat => ({
-      name: cat.name || 'غير محدد',
-      score: Math.min(100, Math.max(0, cat.score ?? 50)),
-      rating: cat.rating || getScoreRating(cat.score ?? 50),
-      criteria: Array.isArray(cat.criteria) ? cat.criteria.map(cr => ({
-        name: cr.name || '',
-        score: Math.min(100, Math.max(0, cr.score ?? 50)),
-        note: cr.note || '',
-      })) : [],
-    }));
-  }
-
-  // Validate key moments
-  if (Array.isArray(data.key_moments)) {
-    report.key_moments = data.key_moments.map(m => ({
-      time: m.time || '',
-      type: m.type || 'note',
-      description: m.description || '',
-    }));
-  }
-
-  return report;
-}
+// Legacy parse/validate helpers were removed — the edge function now
+// normalises and validates reports before returning them, so the client
+// receives data that already matches the expected shape.
 
 // ── Report Population ──
 function populateReport(data) {
@@ -1223,16 +1029,22 @@ let homeInitialized = false;
 function initHomePage() {
   if (homeInitialized) return;
   homeInitialized = true;
+  renderHomeRecent();
+}
 
+function renderHomeRecent() {
   const container = document.getElementById('dashRecentReports');
   if (!container) return;
+
+  // Prefer the user's real reports; pad with demo cards if we have fewer than 3.
+  const list = [...remoteReports, ...DUMMY_REPORTS].slice(0, 3);
 
   // Render each dummy report as an `<a>` with `target="_blank"` rather
   // than an `onclick="window.open(...)"` — real links respect the
   // iframe sandbox's `allow-popups-to-escape-sandbox` flag reliably,
   // while `window.open` can silently fail in some browsers under
   // sandboxed parents.
-  container.innerHTML = DUMMY_REPORTS.slice(0, 3).map(r => {
+  container.innerHTML = list.map(r => {
     const tag = r.isDummy ? 'a' : 'div';
     const openAttrs = r.isDummy
       ? ` href="dummy.html" target="_blank" rel="noopener"`
@@ -1279,8 +1091,58 @@ function initReportsPage() {
   });
 }
 
+// Map a `commentator.reports` row onto the legacy card shape the UI expects.
+// The JSONB `report` column already matches the edge function's normalised
+// payload, so we can pluck category scores straight from it.
+function rowToCardReport(row) {
+  const r = row.report || {};
+  const match = r.match_info || {};
+  const cats = Array.isArray(r.categories) ? r.categories : [];
+  return {
+    id: row.id,
+    commentator: row.commentator_name || r.commentator?.name || 'غير معروف',
+    role: 'معلق',
+    teamA: match.team_a || '—',
+    teamB: match.team_b || '—',
+    score: match.score || '',
+    competition: match.competition || row.match_label || '',
+    date: (row.created_at || '').slice(0, 10),
+    overallScore: Number.isFinite(row.overall_score) ? row.overall_score : (r.overall?.score ?? 0),
+    rating: r.overall?.rating || '',
+    channel: row.channel || r.commentator?.channel || '',
+    video_url: '',
+    categories: cats.map(c => ({ name: c.name, score: c.score })),
+    comments: r.overall?.summary || '',
+    isDummy: false,
+    _report: r,
+  };
+}
+
+async function loadRemoteReports() {
+  try {
+    const { getClient, getUser } = await supa();
+    const client = getClient();
+    if (!client) return;
+    const user = await getUser();
+    if (!user) { remoteReports = []; return; }
+    const { data, error } = await client
+      .schema('commentator')
+      .from('reports')
+      .select('id, user_id, commentator_name, channel, match_label, overall_score, report, model, created_at')
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) { console.warn('[commentator] load reports:', error.message); return; }
+    remoteReports = (data || []).map(rowToCardReport);
+    // Refresh any rendered views that depend on the list.
+    if (homeInitialized) renderHomeRecent();
+    if (reportsInitialized) renderReportsGrid();
+  } catch (err) {
+    console.warn('[commentator] loadRemoteReports failed:', err);
+  }
+}
+
 function getFilteredReports() {
-  let reports = [...DUMMY_REPORTS];
+  let reports = [...remoteReports, ...DUMMY_REPORTS];
 
   // Text search
   const search = document.getElementById('reportsSearchInput')?.value.trim();
@@ -1725,6 +1587,11 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('[commentator] bootstrap failed:', err);
     showError('خطأ في التشغيل', err?.message || 'تعذّر تشغيل الأداة.');
   }
+
+  // Pull the user's persisted reports from Supabase (non-blocking).
+  // Subsequent auth state changes refresh the list transparently.
+  loadRemoteReports();
+  supa().then(({ onAuthChange }) => onAuthChange(() => loadRemoteReports())).catch(() => {});
 
   // Sidebar toggle
   const sidebar = document.getElementById('sidebar');

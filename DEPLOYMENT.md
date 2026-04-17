@@ -130,10 +130,13 @@ that currently depend on server features fall into two buckets:
   Edge Functions (the shared project already hosts the chatbot's
   functions), or replace `fetch('/api/...')` calls with direct
   `@supabase/supabase-js` calls backed by RLS-protected tables.
-- **Commentator** — vanilla HTML, nothing to export. The hardcoded
-  OpenRouter key in `Thmanyah-Commentator-Tool-…/app.js:7` must still
-  be rotated and replaced with a Supabase Edge Function proxy before
-  any public deploy. See §5 below.
+- **Commentator** — vanilla HTML, no bundler. Now talks to Supabase
+  via `/shared/supabase-client.js` (copied to the site root from
+  `Overall-Dashboard/shared/`) and routes OpenRouter through the
+  `commentator-analyze` edge function. No keys in the bundle.
+- **Social Listening** — analysis calls now go through the
+  `social-listening-analyze` edge function. The previous hardcoded
+  `sk-or-v1-…` key has been removed from `src/lib/ai-analysis.ts`.
 
 If a Next.js tool's build fails in the unified deploy because of
 a server-only feature, `build.sh` will fall through gracefully and
@@ -177,6 +180,7 @@ be applied in filename order:
 | 5 | `20260411150100_reflect_chatbot_schema.sql` | Isolated `chatbot` schema (pgvector, pg_trgm) |
 | 6 | `20260411150200_reflect_social_listening_schema.sql` | Isolated `social_listening` schema |
 | 7 | `20260411160100_chatbot_fk_indexes.sql` | FK covering indexes for advisor lints |
+| 8 | `20260417120100_tools_revision_commentator_and_security.sql` | `commentator` schema + reports table + RLS, performance indexes, deprecates plaintext `chatbot.app_users` passwords |
 
 ```bash
 cd Overall-Dashboard/supabase
@@ -192,14 +196,19 @@ needs to be created manually in the Supabase dashboard.
 
 In **Supabase Dashboard → Project → Edge Functions → Secrets** set:
 
-- `OPENAI_API_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` (auto-populated)
+- `OPENAI_API_KEY` — used by the chatbot's RAG pipeline
+- `OPENROUTER_API_KEY` — used by `commentator-analyze` and `social-listening-analyze`
+- `SUPABASE_SERVICE_ROLE_KEY` — auto-populated
 
-Then deploy the chatbot's edge functions (still the only ones
-currently in use):
+Then deploy every edge function:
 
 ```bash
-cd "New Chatbot - Thmanyah"
+cd Overall-Dashboard
+supabase functions deploy commentator-analyze        --project-ref hbnvbfcwrfanpayxulih
+supabase functions deploy social-listening-analyze   --project-ref hbnvbfcwrfanpayxulih
+
+# chatbot functions still ship from their own folder
+cd "../New Chatbot - Thmanyah"
 supabase functions deploy chat             --project-ref hbnvbfcwrfanpayxulih
 supabase functions deploy process-document --project-ref hbnvbfcwrfanpayxulih
 supabase functions deploy authenticate     --project-ref hbnvbfcwrfanpayxulih
@@ -207,14 +216,19 @@ supabase functions deploy authenticate     --project-ref hbnvbfcwrfanpayxulih
 
 ---
 
-## 5. Rotating the OpenRouter key (security)
+## 5. OpenRouter key handling (security)
 
-`Thmanyah-Commentator-Tool-claude-commentator-analysis-tool-jEEYh/app.js`
-still ships a hardcoded `sk-or-v1-…` OpenRouter key (around line 7).
-**Rotate this key immediately before any public deploy** and replace
-the direct call with a Supabase edge function that proxies the
-request server-side. The `.env.example` in that folder sketches the
-layout for the proxy URL.
+The OpenRouter key is **no longer** in the browser bundle. Both
+Commentator and Social Listening call a Supabase Edge Function
+(`commentator-analyze` / `social-listening-analyze`) that holds the
+key server-side and requires a signed-in Supabase user. To rotate:
+
+1. Generate a new key in the OpenRouter dashboard.
+2. Update `OPENROUTER_API_KEY` in Supabase → Edge Functions → Secrets.
+3. Revoke the old key.
+
+No client redeploy is needed — the functions pick up the new secret
+on the next invocation.
 
 ---
 
