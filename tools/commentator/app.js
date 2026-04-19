@@ -40,7 +40,41 @@ let state = {
   abortController: null,
   timerInterval: null,
   timerSeconds: 0,
+  // Historic reports surfaced on Home / Reports / Statistics / Stars.
+  // Starts as the built-in demo set and gets replaced by rows fetched
+  // from `commentator.reports` once the Supabase client is ready.
+  reports: [],
+  dbReady: false,
+  dbError: null,
 };
+
+// ── Supabase wiring ──
+//
+// `window.commentatorSupabase` is created by the ESM loader injected at
+// the bottom of index.html. A `commentator-supabase-ready` event fires
+// once the client is ready; if the ESM import happened before we ran
+// (script order isn't guaranteed under `type="module"`), fall back to
+// polling on the global.
+function getSupabase() {
+  return typeof window !== 'undefined' ? window.commentatorSupabase || null : null;
+}
+
+function onSupabaseReady(cb) {
+  if (getSupabase()) { cb(getSupabase()); return; }
+  window.addEventListener('commentator-supabase-ready', () => {
+    const client = getSupabase();
+    if (client) cb(client);
+  }, { once: true });
+  // Belt + braces — if the event already fired before we registered,
+  // a tiny poll closes the race.
+  let tries = 0;
+  const t = setInterval(() => {
+    const client = getSupabase();
+    tries += 1;
+    if (client) { clearInterval(t); cb(client); return; }
+    if (tries >= 20) clearInterval(t); // give up after ~2s, tool still works offline
+  }, 100);
+}
 
 // ── Helpers ──
 const $ = (sel) => document.querySelector(sel);
@@ -213,6 +247,173 @@ const DUMMY_REPORTS = [
     isDummy: true,
   },
 ];
+
+// Seed the in-memory list with the demo reports so the tool still has
+// content before (or without) a Supabase round-trip. `loadReportsFromDB`
+// appends real saved rows on top.
+state.reports = DUMMY_REPORTS.slice();
+
+// ── Report source of truth ──
+//
+// Every page (Home / Reports / Statistics / Stars) reads from
+// `getAllReports()` instead of the raw DUMMY_REPORTS constant. This is
+// the single knob we turn when a DB refresh lands so pages can pick up
+// the new rows without each init having to know about Supabase.
+function getAllReports() {
+  return state.reports;
+}
+
+// Map one `commentator.reports` row (shape defined in the migration) to
+// the UI report shape the rest of this file expects.
+function dbRowToReport(row) {
+  const doc = row.report || {};
+  const categoriesFromDoc = Array.isArray(doc.categories) ? doc.categories : [];
+  // The Home/Reports/Stars cards render `{ name, score }` pairs; the
+  // stored JSON keeps the richer `{ name, score, rating, criteria[] }`
+  // so pass both on and let callers pick what they need.
+  const categories = categoriesFromDoc.map(c => ({
+    name: c.name,
+    score: c.score,
+    rating: c.rating,
+    criteria: c.criteria || [],
+  }));
+  const matchScore = row.match_score || doc.match_info?.score || '—';
+  return {
+    id: row.id,
+    commentator: row.commentator_name,
+    role: row.role || 'معلق',
+    teamA: row.team_a || '—',
+    teamB: row.team_b || '—',
+    score: matchScore,
+    competition: row.competition || '',
+    date: row.match_date || (row.created_at ? row.created_at.slice(0, 10) : ''),
+    overallScore: row.overall_score,
+    rating: row.rating || getScoreRating(row.overall_score),
+    channel: row.channel || '',
+    video_url: row.video_url || doc.video_url || '',
+    categories,
+    comments: row.comments || doc.overall?.summary || '',
+    tags: Array.isArray(row.tags) && row.tags.length ? row.tags : (doc.tags || []),
+    fullReport: doc,
+    isDummy: false,
+  };
+}
+
+// Map the in-memory analysis result to a row insert for Supabase.
+function reportToDbRow(report) {
+  if (!report) return null;
+  const mi = report.match_info || {};
+  const c = report.commentator || {};
+  const date = parseReportDate(mi.date);
+  return {
+    commentator_name: c.name || 'غير محدد',
+    role: inferRole(c.name, report),
+    channel: c.channel || null,
+    team_a: mi.team_a || null,
+    team_b: mi.team_b || null,
+    match_score: mi.score || null,
+    competition: mi.competition || null,
+    match_date: date,
+    overall_score: Math.max(0, Math.min(100, Math.round(report.overall?.score ?? 0))),
+    rating: report.overall?.rating || null,
+    video_url: report.video_url || null,
+    comments: report.overall?.summary || null,
+    tags: Array.isArray(report.tags) ? report.tags : [],
+    report,
+  };
+}
+
+// Best-effort ISO date parser — the AI returns `date` as a free-form
+// Arabic/English string. We accept `YYYY-MM-DD` verbatim, otherwise
+// fall back to today so the row still inserts (the date column is
+// nullable but the UI looks better with a real value).
+function parseReportDate(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const m = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return `${m[1]}-${m[2]}-${m[3]}`;
+  const parsed = Date.parse(raw);
+  if (!isNaN(parsed)) return new Date(parsed).toISOString().slice(0, 10);
+  return null;
+}
+
+function inferRole(_name, _report) {
+  // The analyzer currently only evaluates play-by-play commentators.
+  // Keep this explicit so reports page filters work.
+  return 'معلق';
+}
+
+async function loadReportsFromDB() {
+  const client = getSupabase();
+  if (!client) return { ok: false, reason: 'no-client' };
+  try {
+    const { data, error } = await client
+      .from('reports')
+      .select('*')
+      .order('match_date', { ascending: false, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(200);
+    if (error) {
+      state.dbError = error.message || String(error);
+      console.warn('[commentator] load reports failed:', error);
+      return { ok: false, reason: 'query-error', error };
+    }
+    state.dbReady = true;
+    state.dbError = null;
+    const dbReports = (data || []).map(dbRowToReport);
+    // Real reports come first. The DUMMY_REPORTS set is kept so the
+    // Home / Stars / Statistics pages still have enough content for
+    // trend charts while the DB is empty.
+    state.reports = dbReports.length > 0 ? [...dbReports, ...DUMMY_REPORTS] : DUMMY_REPORTS.slice();
+    invalidatePageCaches();
+    return { ok: true, count: dbReports.length };
+  } catch (err) {
+    state.dbError = err?.message || String(err);
+    console.warn('[commentator] load reports threw:', err);
+    return { ok: false, reason: 'exception', error: err };
+  }
+}
+
+async function saveReportToDB(report) {
+  const client = getSupabase();
+  if (!client) return { ok: false, reason: 'no-client' };
+  const row = reportToDbRow(report);
+  if (!row) return { ok: false, reason: 'bad-input' };
+  try {
+    const { data, error } = await client
+      .from('reports')
+      .insert(row)
+      .select('*')
+      .single();
+    if (error) {
+      console.warn('[commentator] save report failed:', error);
+      return { ok: false, reason: 'insert-error', error };
+    }
+    // Prepend the saved row so it appears at the top of every list.
+    state.reports = [dbRowToReport(data), ...state.reports];
+    invalidatePageCaches();
+    return { ok: true, row: data };
+  } catch (err) {
+    console.warn('[commentator] save report threw:', err);
+    return { ok: false, reason: 'exception', error: err };
+  }
+}
+
+// Force every lazy-init page to re-render on next visit. Called after
+// we swap `state.reports`. Re-renders the currently-visible page
+// in-place so a DB refresh while the user is on Reports/Stars/Stats
+// shows the new rows without navigation.
+function invalidatePageCaches() {
+  homeInitialized = false;
+  reportsInitialized = false;
+  statsInitialized = false;
+  starsInitialized = false;
+  const current = state.currentView;
+  if (current === 'home') initHomePage();
+  else if (current === 'reports') initReportsPage();
+  else if (current === 'statistics') initStatisticsPage();
+  else if (current === 'stars') initStarsPage();
+  else if (current === 'settings') renderDbStatus();
+}
 
 const VIEW_CONFIG = {
   home:       { title: 'الرئيسية',            navIdx: 0, actions: false },
@@ -438,6 +639,18 @@ async function startAnalysis() {
     populateReport(result);
     showView('report');
     animateReport();
+
+    // Fire-and-forget persistence. A DB failure should NEVER block the
+    // user from seeing their report — we show a non-blocking toast
+    // either way. The save populates `state.reports` so the new row
+    // shows up on Home / Reports / Stars / Statistics immediately.
+    saveReportToDB(result).then(res => {
+      if (res.ok) {
+        showToast('تم حفظ التقرير في قاعدة البيانات');
+      } else if (res.reason !== 'no-client') {
+        showToast('تعذّر حفظ التقرير — سيبقى متاحًا محليًا');
+      }
+    });
 
   } catch (err) {
     stopTimer();
@@ -1232,7 +1445,7 @@ function initHomePage() {
   // iframe sandbox's `allow-popups-to-escape-sandbox` flag reliably,
   // while `window.open` can silently fail in some browsers under
   // sandboxed parents.
-  container.innerHTML = DUMMY_REPORTS.slice(0, 3).map(r => {
+  container.innerHTML = getAllReports().slice(0, 3).map(r => {
     const tag = r.isDummy ? 'a' : 'div';
     const openAttrs = r.isDummy
       ? ` href="dummy.html" target="_blank" rel="noopener"`
@@ -1280,7 +1493,7 @@ function initReportsPage() {
 }
 
 function getFilteredReports() {
-  let reports = [...DUMMY_REPORTS];
+  let reports = getAllReports().slice();
 
   // Text search
   const search = document.getElementById('reportsSearchInput')?.value.trim();
@@ -1406,10 +1619,14 @@ function renderStatsCategoryBars() {
   const container = document.getElementById('statsCategoryBars');
   if (!container) return;
 
-  const catNames = DUMMY_REPORTS[0].categories.map(c => c.name);
+  const reports = getAllReports();
+  if (reports.length === 0) { container.innerHTML = ''; return; }
+  // Use the first report's category order as the canonical axis; real
+  // AI reports and demo rows agree on the 8-axis Arabic labels.
+  const catNames = reports[0].categories.map(c => c.name);
   const avgScores = catNames.map((name, i) => {
-    const sum = DUMMY_REPORTS.reduce((s, r) => s + r.categories[i].score, 0);
-    return { name, score: Math.round(sum / DUMMY_REPORTS.length) };
+    const sum = reports.reduce((s, r) => s + (r.categories[i]?.score ?? 0), 0);
+    return { name, score: Math.round(sum / reports.length) };
   });
 
   container.innerHTML = avgScores.map(c => `
@@ -1427,26 +1644,30 @@ function renderStatsComparison() {
   const container = document.getElementById('statsComparison');
   if (!container) return;
 
+  const reports = getAllReports();
+  if (reports.length === 0) { container.innerHTML = ''; return; }
+
   const commentators = {};
-  DUMMY_REPORTS.forEach(r => {
+  reports.forEach(r => {
     if (!commentators[r.commentator]) commentators[r.commentator] = { reports: [], name: r.commentator };
     commentators[r.commentator].reports.push(r);
   });
 
-  const colors = ['#00C17A', '#0072F9', '#FFBC0A', '#F24935'];
-  const entries = Object.values(commentators);
+  const colors = ['#00C17A', '#0072F9', '#FFBC0A', '#F24935', '#9333EA', '#FB923C'];
+  // Limit to 6 commentators so the legend + stacked bars stay legible.
+  const entries = Object.values(commentators).slice(0, colors.length);
 
   container.innerHTML = `
     <div class="stats-comparison-legend">
       ${entries.map((e, i) => `<span class="stats-legend-item"><span class="stats-legend-dot" style="background:${colors[i]}"></span>${e.name} (${e.reports.length} تقارير)</span>`).join('')}
     </div>
     <div class="stats-comparison-bars">
-      ${DUMMY_REPORTS[0].categories.map((cat, ci) => `
+      ${reports[0].categories.map((cat, ci) => `
         <div class="stats-comp-row">
           <span class="stats-comp-label">${cat.name.split(' ')[0]}</span>
           <div class="stats-comp-bars-group">
             ${entries.map((e, ei) => {
-              const avg = Math.round(e.reports.reduce((s, r) => s + r.categories[ci].score, 0) / e.reports.length);
+              const avg = Math.round(e.reports.reduce((s, r) => s + (r.categories[ci]?.score ?? 0), 0) / e.reports.length);
               return `<div class="stats-comp-bar" style="width:${avg}%;background:${colors[ei]};" title="${e.name}: ${avg}"><span class="stats-comp-bar-val">${avg}</span></div>`;
             }).join('')}
           </div>
@@ -1462,7 +1683,7 @@ function renderStatsDistribution() {
 
   // Collect all criteria scores
   const allScores = [];
-  DUMMY_REPORTS.forEach(r => r.categories.forEach(c => {
+  getAllReports().forEach(r => (r.categories || []).forEach(c => {
     allScores.push(c.score);
   }));
 
@@ -1520,7 +1741,7 @@ function renderStatsStrengthsImprovements() {
         <span class="stats-list-icon strength-icon">&#10003;</span>
         <div class="stats-list-content">
           <span class="stats-list-text">${s.text}</span>
-          <span class="stats-list-meta">ظهرت في ${s.count} من ${DUMMY_REPORTS.length} تقارير (${s.pct}%)</span>
+          <span class="stats-list-meta">ظهرت في ${s.count} من ${getAllReports().length} تقارير (${s.pct}%)</span>
         </div>
       </div>
     `).join('');
@@ -1532,7 +1753,7 @@ function renderStatsStrengthsImprovements() {
         <span class="stats-list-icon improvement-icon">!</span>
         <div class="stats-list-content">
           <span class="stats-list-text">${s.text}</span>
-          <span class="stats-list-meta">ظهرت في ${s.count} من ${DUMMY_REPORTS.length} تقارير (${s.pct}%)</span>
+          <span class="stats-list-meta">ظهرت في ${s.count} من ${getAllReports().length} تقارير (${s.pct}%)</span>
         </div>
       </div>
     `).join('');
@@ -1543,7 +1764,11 @@ function renderStatsTrendChart() {
   const container = document.getElementById('statsTrendChart');
   if (!container) return;
 
-  const sorted = [...DUMMY_REPORTS].sort((a, b) => a.date.localeCompare(b.date));
+  const sorted = getAllReports()
+    .filter(r => r.date)
+    .slice()
+    .sort((a, b) => a.date.localeCompare(b.date));
+  if (sorted.length === 0) { container.innerHTML = ''; return; }
   const points = sorted.map((r, i) => ({
     x: (i / Math.max(sorted.length - 1, 1)) * 100,
     y: 100 - r.overallScore,
@@ -1635,6 +1860,52 @@ function initSettingsPage() {
   if (settingsInitialized) return;
   settingsInitialized = true;
   loadSettings();
+  renderDbStatus();
+
+  const refreshBtn = document.getElementById('settingsDbRefresh');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', async () => {
+      refreshBtn.disabled = true;
+      refreshBtn.textContent = 'جارٍ التحديث...';
+      const res = await loadReportsFromDB();
+      renderDbStatus();
+      refreshBtn.disabled = false;
+      refreshBtn.textContent = 'تحديث الاتصال';
+      showToast(res.ok
+        ? `تم تحميل ${res.count} تقرير من قاعدة البيانات`
+        : 'تعذّر الاتصال بقاعدة البيانات');
+    });
+  }
+}
+
+function renderDbStatus() {
+  const dot  = document.getElementById('settingsDbDot');
+  const text = document.getElementById('settingsDbText');
+  const cnt  = document.getElementById('settingsDbCount');
+  if (!dot || !text) return;
+
+  const client = getSupabase();
+  let color = '#C0C4CC';
+  let label = 'غير متصل';
+
+  if (!client) {
+    color = '#F24935'; label = 'تعذّر تهيئة العميل';
+  } else if (state.dbReady) {
+    color = '#00C17A'; label = 'متصل';
+  } else if (state.dbError) {
+    color = '#F24935'; label = `خطأ: ${state.dbError}`;
+  } else {
+    color = '#FFBC0A'; label = 'جارٍ التحقق من الاتصال...';
+  }
+  dot.style.background = color;
+  text.textContent = label;
+
+  if (cnt) {
+    const dbCount = state.reports.filter(r => !r.isDummy).length;
+    cnt.textContent = state.dbReady
+      ? `${dbCount} تقرير مخزّن`
+      : '—';
+  }
 }
 
 function loadSettings() {
@@ -1725,6 +1996,15 @@ document.addEventListener('DOMContentLoaded', () => {
     console.error('[commentator] bootstrap failed:', err);
     showError('خطأ في التشغيل', err?.message || 'تعذّر تشغيل الأداة.');
   }
+
+  // Hydrate from Supabase as soon as the client is available. The
+  // page already renders using DUMMY_REPORTS, so this is a silent
+  // refresh — `invalidatePageCaches` re-renders the active view.
+  onSupabaseReady(() => {
+    loadReportsFromDB().catch(err =>
+      console.warn('[commentator] initial report load failed:', err)
+    );
+  });
 
   // Sidebar toggle
   const sidebar = document.getElementById('sidebar');
@@ -1978,7 +2258,7 @@ function initStarsPage() {
 
 function getStarsData() {
   const starMap = {};
-  DUMMY_REPORTS.forEach(r => {
+  getAllReports().forEach(r => {
     if (!starMap[r.commentator]) {
       starMap[r.commentator] = {
         name: r.commentator,

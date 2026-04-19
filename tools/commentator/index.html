@@ -738,6 +738,35 @@
             </div>
           </div>
 
+          <!-- Supabase Connection -->
+          <div class="card settings-card">
+            <div class="settings-card-header">
+              <div class="settings-card-icon" style="background:rgba(0,193,122,0.1);color:#00C17A;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 11v6c0 1.66 4.03 3 9 3s9-1.34 9-3v-6"/></svg>
+              </div>
+              <div>
+                <h3 class="settings-card-title">قاعدة البيانات</h3>
+                <p class="settings-card-desc">حالة الاتصال بخادم Supabase لحفظ التقارير</p>
+              </div>
+            </div>
+            <div class="settings-fields">
+              <div class="settings-field">
+                <label class="settings-label">الحالة</label>
+                <div id="settingsDbStatus" class="settings-hint" style="display:flex;align-items:center;gap:8px;">
+                  <span id="settingsDbDot" style="width:10px;height:10px;border-radius:50%;background:#C0C4CC;display:inline-block;"></span>
+                  <span id="settingsDbText">جارٍ التحقق من الاتصال...</span>
+                </div>
+              </div>
+              <div class="settings-field">
+                <label class="settings-label">عدد التقارير المحفوظة</label>
+                <span id="settingsDbCount" class="settings-hint">—</span>
+              </div>
+              <div class="settings-field" style="display:flex;gap:8px;flex-wrap:wrap;">
+                <button type="button" class="btn btn-secondary btn-sm" id="settingsDbRefresh">تحديث الاتصال</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Report Settings -->
           <div class="card settings-card">
             <div class="settings-card-header">
@@ -1030,6 +1059,30 @@
     </div>
   </div>
 
+  <!--
+    Supabase client (ESM from CDN). Exposed on window so the classic
+    app.js below can read/write analyses without having to be
+    converted to a module. Lives alongside the other same-origin
+    assets; matches the dashboard's own Supabase wiring.
+  -->
+  <script type="module">
+    import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+    window.COMMENTATOR_SUPABASE = {
+      url: 'https://hbnvbfcwrfanpayxulih.supabase.co',
+      anonKey: 'sb_publishable_P_AoE0x-HsqrJTarwZOT7Q_0UE2trZv',
+    };
+    try {
+      window.commentatorSupabase = createClient(
+        window.COMMENTATOR_SUPABASE.url,
+        window.COMMENTATOR_SUPABASE.anonKey,
+        { db: { schema: 'commentator' }, auth: { persistSession: false } }
+      );
+      window.dispatchEvent(new CustomEvent('commentator-supabase-ready'));
+    } catch (err) {
+      console.error('[commentator] failed to create Supabase client:', err);
+      window.commentatorSupabase = null;
+    }
+  </script>
   <script src="app.js"></script>
 </body>
 </html>
