@@ -13,7 +13,8 @@
  */
 
 import { store } from './store';
-import type { SearchResult } from '@/types';
+import { supabase, isSupabaseConfigured } from './supabase';
+import type { Podcast, Scene, SearchResult } from '@/types';
 
 type Handler = (
   req: Request,
@@ -47,18 +48,205 @@ const aiStatus: Handler = () =>
     error: 'خدمات الذكاء الاصطناعي غير مفعّلة في هذا النشر الثابت.',
   });
 
+// ── Helpers for the static upload path ──
+//
+// In dev mode `/api/podcasts POST` runs the full AI pipeline on the
+// server (transcribe → segment → enrich → embed). Under static export
+// we don't have a server, so we accept the upload, segment the
+// transcript deterministically, and persist everything to the
+// `podcast_video` schema so refreshing the page still shows it.
+
+function formatTime(totalSec: number): string {
+  const s = Math.max(0, Math.round(totalSec));
+  const m = Math.floor(s / 60);
+  return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function estimateDuration(transcript: string): string {
+  const words = transcript.trim().split(/\s+/).filter(Boolean).length;
+  // Arabic podcast speech ≈ 2 words / sec (rough).
+  return formatTime(Math.max(30, Math.round(words / 2)));
+}
+
+function segmentFallback(podcastId: string, transcript: string): Scene[] {
+  const clean = transcript.trim();
+  if (!clean) return [];
+
+  // Prefer user-provided paragraph breaks; otherwise chunk ~150 words.
+  const paragraphs = clean.split(/\n\n+/).map((p) => p.trim()).filter(Boolean);
+  let chunks: string[];
+  if (paragraphs.length >= 2) {
+    chunks = paragraphs;
+  } else {
+    const words = clean.split(/\s+/);
+    chunks = [];
+    const chunkSize = 150;
+    for (let i = 0; i < words.length; i += chunkSize) {
+      chunks.push(words.slice(i, i + chunkSize).join(' '));
+    }
+    if (chunks.length === 0) chunks = [clean];
+  }
+
+  let cursor = 0;
+  return chunks.map((content, i) => {
+    const words = content.split(/\s+/).length;
+    const secs = Math.max(30, Math.min(300, Math.round(words / 2)));
+    const start = cursor;
+    const end = cursor + secs;
+    cursor = end;
+    const snippet = content.replace(/\s+/g, ' ').trim();
+    const titleBase = snippet.slice(0, 50).replace(/\s+\S*$/, '');
+    return {
+      id: `${podcastId}-s${i + 1}`,
+      podcastId,
+      title: `${titleBase}${snippet.length > 50 ? '…' : ''}`.trim() || `المشهد ${i + 1}`,
+      startTime: formatTime(start),
+      endTime: formatTime(end),
+      content,
+      summary: snippet.slice(0, 140) + (snippet.length > 140 ? '…' : ''),
+      topics: [],
+      mood: '',
+      order: i + 1,
+    };
+  });
+}
+
+type UploadBody = {
+  title?: string;
+  mode?: 'upload' | 'transcript' | 'video-url';
+  transcript?: string;
+  videoUrl?: string;
+};
+
+async function persistToSupabase(
+  podcast: Podcast,
+  scenes: Scene[],
+  transcript: string,
+  videoUrl: string | undefined,
+): Promise<{ ok: boolean; error?: string }> {
+  if (!isSupabaseConfigured || !supabase) {
+    return { ok: false, error: 'Supabase not configured' };
+  }
+  try {
+    const { error: podcastErr } = await supabase
+      .schema('podcast_video')
+      .from('podcasts')
+      .insert({
+        id: podcast.id,
+        title: podcast.title,
+        description: podcast.description,
+        duration: podcast.duration,
+        upload_date: podcast.uploadDate,
+        status: podcast.status,
+        scenes_count: podcast.scenesCount,
+        source: podcast.source,
+        raw_transcript: transcript,
+        video_url: videoUrl || null,
+        pipeline_status: { stage: 'complete', progress: 100, message: 'مكتمل' },
+      });
+    if (podcastErr) throw podcastErr;
+
+    if (scenes.length > 0) {
+      const { error: scenesErr } = await supabase
+        .schema('podcast_video')
+        .from('scenes')
+        .insert(
+          scenes.map((s) => ({
+            id: s.id,
+            podcast_id: podcast.id,
+            title: s.title,
+            start_time: s.startTime,
+            end_time: s.endTime,
+            content: s.content,
+            summary: s.summary || '',
+            topics: s.topics || [],
+            mood: s.mood || '',
+            order: s.order || 0,
+          })),
+        );
+      if (scenesErr) throw scenesErr;
+    }
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : String(e) };
+  }
+}
+
 /** /api/podcasts GET + POST */
 const podcastsList: Handler = async (req) => {
   if (req.method === 'GET') {
     return ok({ podcasts: store.getPodcasts() });
   }
-  if (req.method === 'POST') {
-    return err(
-      'رفع بودكاست جديد غير مفعّل في هذا النشر. شغّل الأداة محلياً عبر npm run dev.',
-      503,
-    );
+  if (req.method !== 'POST') {
+    return err('Method not allowed', 405);
   }
-  return err('Method not allowed', 405);
+
+  let body: UploadBody;
+  try {
+    body = (await req.json()) as UploadBody;
+  } catch {
+    return err('Invalid JSON body', 400);
+  }
+
+  const title = (body.title || '').trim();
+  if (!title) return err('الرجاء إدخال عنوان البودكاست', 400);
+
+  const mode = body.mode || 'transcript';
+  const transcript = (body.transcript || '').trim();
+  const videoUrl = (body.videoUrl || '').trim();
+
+  // The three modes map onto the DB `source` check constraint. File
+  // uploads arrive after the caller has already transcribed the audio
+  // via /api/analyze, so at this point we always have text — or a URL
+  // placeholder for the video-url flow without AI.
+  const source: Podcast['source'] =
+    mode === 'video-url' ? 'video-url' : mode === 'transcript' ? 'transcript' : 'upload';
+
+  const effectiveTranscript =
+    transcript ||
+    (videoUrl
+      ? `تم تسجيل رابط الفيديو: ${videoUrl}. فعّل الذكاء الاصطناعي لتحليله تلقائياً.`
+      : 'لا يوجد نص. فعّل الذكاء الاصطناعي لتحليل الملف المرفوع.');
+
+  const id = `pod-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  const uploadDate = new Date().toISOString().slice(0, 10);
+  const scenes = segmentFallback(id, effectiveTranscript);
+
+  const podcast: Podcast = {
+    id,
+    title,
+    description:
+      effectiveTranscript.replace(/\s+/g, ' ').slice(0, 200) +
+      (effectiveTranscript.length > 200 ? '…' : ''),
+    duration: estimateDuration(effectiveTranscript),
+    uploadDate,
+    status: 'ready',
+    scenesCount: scenes.length,
+    source,
+  };
+
+  // 1 · in-memory — the user's current tab sees the row immediately.
+  store.addPodcast(podcast);
+  store.setScenes(id, scenes);
+  store.setPodcastData(id, {
+    rawTranscript: effectiveTranscript,
+    videoUrl: videoUrl || undefined,
+  });
+  store.setPipelineStatus(id, { stage: 'complete', progress: 100, message: 'مكتمل' });
+
+  // 2 · Supabase — so refreshing or opening from another tab still shows it.
+  const persistResult = await persistToSupabase(podcast, scenes, effectiveTranscript, videoUrl);
+  if (!persistResult.ok) {
+    // eslint-disable-next-line no-console
+    console.warn('[staticApiShim] podcast persist failed:', persistResult.error);
+  }
+
+  return ok({
+    id,
+    podcast,
+    persisted: persistResult.ok,
+    persistError: persistResult.error,
+  });
 };
 
 /** /api/podcasts/[id] GET */
@@ -89,7 +277,38 @@ const scenesDetail: Handler = async (req, params) => {
   if (req.method === 'PUT') {
     try {
       const body = await req.json();
-      if (body?.scenes) store.setScenes(id, body.scenes);
+      if (body?.scenes) {
+        store.setScenes(id, body.scenes);
+        // Best-effort sync to Supabase — replace all scenes for this
+        // podcast. Silent fallback if the DB is unreachable.
+        if (isSupabaseConfigured && supabase) {
+          try {
+            await supabase.schema('podcast_video').from('scenes').delete().eq('podcast_id', id);
+            if (body.scenes.length > 0) {
+              await supabase
+                .schema('podcast_video')
+                .from('scenes')
+                .insert(
+                  (body.scenes as Scene[]).map((s) => ({
+                    id: s.id,
+                    podcast_id: id,
+                    title: s.title,
+                    start_time: s.startTime,
+                    end_time: s.endTime,
+                    content: s.content,
+                    summary: s.summary || '',
+                    topics: s.topics || [],
+                    mood: s.mood || '',
+                    order: s.order || 0,
+                  })),
+                );
+            }
+          } catch (e) {
+            // eslint-disable-next-line no-console
+            console.warn('[staticApiShim] scene sync failed:', e);
+          }
+        }
+      }
       return ok({ success: true });
     } catch {
       return err('Invalid JSON body', 400);
