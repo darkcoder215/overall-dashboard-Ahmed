@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { CandidateAnalysis } from "@/lib/types";
 import { getAllCandidates, getStats } from "@/lib/storage";
+import { seedDemoCandidatesIfEmpty } from "@/lib/demo-data";
 import { DECISION_CONFIG, getScoreColor } from "@/lib/constants";
 import StatCard from "@/components/ui/StatCard";
 import Button from "@/components/ui/Button";
@@ -28,6 +29,7 @@ export default function Dashboard({ onNewAnalysis, onViewCandidate }: DashboardP
   const [stats, setStats] = useState(getStats());
 
   useEffect(() => {
+    seedDemoCandidatesIfEmpty();
     setCandidates(getAllCandidates());
     setStats(getStats());
   }, []);

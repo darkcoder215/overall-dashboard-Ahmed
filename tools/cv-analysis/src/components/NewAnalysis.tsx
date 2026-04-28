@@ -2,16 +2,16 @@
 
 import { useState, useRef, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
-import { RoleContext, CandidateAnalysis, ExperienceLevel } from "@/lib/types";
+import { CandidateAnalysis, RoleContext } from "@/lib/types";
 import { saveCandidate } from "@/lib/storage";
 import {
-  DEPARTMENTS,
-  EXPERIENCE_LEVELS,
   MAX_CV_SIZE_MB,
   MAX_VIDEO_SIZE_MB,
   ACCEPTED_CV_TYPES,
   ACCEPTED_VIDEO_TYPES,
 } from "@/lib/constants";
+import { renderPdfToImages } from "@/lib/pdf";
+import { analyzeCV, analyzeVideo } from "@/lib/ai";
 import Button from "@/components/ui/Button";
 import {
   ArrowRight,
@@ -23,9 +23,9 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  Briefcase,
-  User,
+  MessageSquare,
   Sparkles,
+  Send,
 } from "lucide-react";
 
 interface NewAnalysisProps {
@@ -35,21 +35,17 @@ interface NewAnalysisProps {
 
 type Step = 1 | 2 | 3;
 
-const STEP_LABELS = ["سياق الدور", "رفع الملفات", "التحليل"];
+const STEP_LABELS = ["وصف الدور", "رفع الملفات", "التحليل"];
+
+const EXAMPLE_BRIEFS = [
+  "نبحث عن منتج بودكاست بخبرة 5+ سنوات لقيادة سلسلة جديدة. مهم: كتابة سكربت قوية، خبرة بإدارة ضيوف، وحس صحفي عربي.",
+  "مطور Frontend متوسط الخبرة، React/Next.js/TypeScript، يعمل ضمن فريق منصة. الأهداف: تسريع تطوير الميزات وتحسين الأداء.",
+  "محرر فيديو احترافي للحلقات اليومية، Premiere + After Effects، إيقاع سريع، حس بصري قوي للمحتوى الإعلامي العربي.",
+];
 
 export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) {
   const [step, setStep] = useState<Step>(1);
-  const [roleContext, setRoleContext] = useState<RoleContext>({
-    roleTitle: "",
-    roleTitleEn: "",
-    department: "",
-    experienceLevel: "mid",
-    requiredSkills: "",
-    roleDescription: "",
-    niceToHaveSkills: "",
-    languageRequirements: "",
-    additionalNotes: "",
-  });
+  const [description, setDescription] = useState("");
   const [candidateName, setCandidateName] = useState("");
   const [candidateEmail, setCandidateEmail] = useState("");
   const [cvFile, setCvFile] = useState<File | null>(null);
@@ -62,28 +58,16 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
   const cvInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
-  const updateRole = (field: keyof RoleContext, value: string) => {
-    setRoleContext((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const canProceedStep1 =
-    roleContext.roleTitle.trim() &&
-    roleContext.department &&
-    roleContext.requiredSkills.trim() &&
-    roleContext.roleDescription.trim();
-
+  const canProceedStep1 = description.trim().length >= 20;
   const canProceedStep2 = candidateName.trim() && (cvFile || videoFile);
 
-  const handleFileDrop = useCallback(
-    (e: React.DragEvent, type: "cv" | "video") => {
-      e.preventDefault();
-      const file = e.dataTransfer.files[0];
-      if (!file) return;
-      if (type === "cv") validateAndSetCv(file);
-      else validateAndSetVideo(file);
-    },
-    []
-  );
+  const handleFileDrop = useCallback((e: React.DragEvent, type: "cv" | "video") => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    if (type === "cv") validateAndSetCv(file);
+    else validateAndSetVideo(file);
+  }, []);
 
   const validateAndSetCv = (file: File) => {
     if (file.size > MAX_CV_SIZE_MB * 1024 * 1024) {
@@ -103,17 +87,33 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
     setVideoFile(file);
   };
 
-  const fileToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+  const fileToBase64 = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result as string;
-        const base64 = result.split(",")[1];
-        resolve(base64);
+        resolve(result.split(",")[1] ?? "");
       };
       reader.onerror = reject;
       reader.readAsDataURL(file);
     });
+
+  // Build a minimal RoleContext from the chat description so existing
+  // CandidateAnalysis fields (used by Dashboard / detail views) stay populated.
+  const buildRoleContext = (): RoleContext => {
+    const firstLine = description.trim().split(/\n|\.|—|-/)[0]?.trim() || "تحليل مرشح";
+    const roleTitle = firstLine.length > 60 ? firstLine.slice(0, 57) + "…" : firstLine;
+    return {
+      roleTitle,
+      roleTitleEn: "",
+      department: "",
+      experienceLevel: "mid",
+      requiredSkills: "",
+      roleDescription: description.trim(),
+      niceToHaveSkills: "",
+      languageRequirements: "",
+      additionalNotes: "",
+    };
   };
 
   const handleAnalyze = async () => {
@@ -123,6 +123,7 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
     setStep(3);
 
     const candidateId = uuidv4();
+    const roleContext = buildRoleContext();
     const candidate: CandidateAnalysis = {
       id: candidateId,
       candidateName,
@@ -139,65 +140,59 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
       updatedAt: new Date().toISOString(),
       notes: "",
     };
-
     saveCandidate(candidate);
 
     try {
-      // Analyze CV
       if (cvFile) {
-        setProgressLabel("جاري تحليل السيرة الذاتية...");
-        setProgress(10);
-        const cvBase64 = await fileToBase64(cvFile);
-        setProgress(25);
+        const isPdf =
+          cvFile.type === "application/pdf" ||
+          cvFile.name.toLowerCase().endsWith(".pdf");
 
-        const cvResponse = await fetch("/api/analyze-cv", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            cvBase64,
-            cvMimeType: cvFile.type || "application/pdf",
-            roleContext,
-          }),
-        });
+        let images: { base64: string; mimeType: string }[] = [];
 
-        setProgress(55);
-        const cvData = await cvResponse.json();
-
-        if (cvData.error) {
-          throw new Error(cvData.error);
+        if (isPdf) {
+          setProgressLabel("جاري تحويل صفحات السيرة الذاتية إلى صور...");
+          setProgress(5);
+          const rendered = await renderPdfToImages(cvFile, {
+            scale: 1.7,
+            maxPages: 12,
+            jpegQuality: 0.85,
+            onProgress: (done, total) => {
+              const pct = Math.round((done / total) * 25);
+              setProgress(5 + pct);
+              setProgressLabel(`تحويل الصفحة ${done} من ${total}...`);
+            },
+          });
+          if (rendered.length === 0) throw new Error("تعذّر استخراج صفحات من ملف PDF");
+          images = rendered.map((p) => ({ base64: p.base64, mimeType: p.mimeType }));
+        } else {
+          // Non-PDF (DOC/DOCX) — pass as a single base64 attachment.
+          setProgressLabel("جاري قراءة السيرة الذاتية...");
+          setProgress(15);
+          const base64 = await fileToBase64(cvFile);
+          images = [{ base64, mimeType: cvFile.type || "application/octet-stream" }];
         }
 
-        candidate.cvAnalysis = cvData.analysis;
+        setProgressLabel("جاري تحليل السيرة الذاتية بالذكاء الاصطناعي...");
+        setProgress(40);
+        candidate.cvAnalysis = await analyzeCV(images, description);
+        setProgress(videoFile ? 65 : 95);
       }
 
-      // Analyze Video
       if (videoFile) {
-        setProgressLabel("جاري تحليل الفيديو...");
-        setProgress(cvFile ? 60 : 10);
+        setProgressLabel("جاري قراءة الفيديو...");
+        setProgress(cvFile ? 70 : 15);
         const videoBase64 = await fileToBase64(videoFile);
-        setProgress(cvFile ? 70 : 30);
-
-        const videoResponse = await fetch("/api/analyze-video", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            videoBase64,
-            videoMimeType: videoFile.type || "video/mp4",
-            roleContext,
-          }),
-        });
-
-        setProgress(90);
-        const videoData = await videoResponse.json();
-
-        if (videoData.error) {
-          throw new Error(videoData.error);
-        }
-
-        candidate.videoAnalysis = videoData.analysis;
+        setProgress(cvFile ? 78 : 35);
+        setProgressLabel("جاري تحليل الفيديو بالذكاء الاصطناعي...");
+        candidate.videoAnalysis = await analyzeVideo(
+          videoBase64,
+          videoFile.type || "video/mp4",
+          description
+        );
+        setProgress(95);
       }
 
-      // Calculate combined score
       let combinedScore = 0;
       if (candidate.cvAnalysis && candidate.videoAnalysis) {
         combinedScore = Math.round(
@@ -214,12 +209,9 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
       candidate.status = "completed";
       setProgress(100);
       setProgressLabel("اكتمل التحليل!");
-
       saveCandidate(candidate);
 
-      setTimeout(() => {
-        onComplete(candidateId);
-      }, 800);
+      setTimeout(() => onComplete(candidateId), 800);
     } catch (err) {
       candidate.status = "failed";
       saveCandidate(candidate);
@@ -270,148 +262,62 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
         })}
       </div>
 
-      {/* Step 1: Role Context */}
+      {/* Step 1: Chat-style description */}
       {step === 1 && (
         <div className="animate-fadeInUp">
           <div className="glass-card rounded-3xl p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-11 h-11 rounded-xl bg-thmanyah-green-pale flex items-center justify-center">
-                <Briefcase size={22} className="text-thmanyah-green" />
+                <MessageSquare size={22} className="text-thmanyah-green" />
               </div>
               <div>
-                <h2 className="font-display font-bold text-[20px]">سياق الدور الوظيفي</h2>
+                <h2 className="font-display font-bold text-[20px]">عرّفنا بالدور وأهدافك</h2>
                 <p className="text-[13px] text-thmanyah-muted">
-                  حدد متطلبات الدور لتحليل أدق
+                  اكتب وصفاً حراً — الذكاء الاصطناعي سيستخلص المتطلبات بنفسه
                 </p>
               </div>
             </div>
 
             <div className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                    المسمى الوظيفي <span className="text-thmanyah-red">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={roleContext.roleTitle}
-                    onChange={(e) => updateRole("roleTitle", e.target.value)}
-                    placeholder="مثال: مطور واجهات أمامية"
-                    className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                    المسمى بالإنجليزية
-                  </label>
-                  <input
-                    type="text"
-                    value={roleContext.roleTitleEn}
-                    onChange={(e) => updateRole("roleTitleEn", e.target.value)}
-                    placeholder="e.g. Frontend Developer"
-                    className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all"
-                    dir="ltr"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                    الإدارة <span className="text-thmanyah-red">*</span>
-                  </label>
-                  <select
-                    value={roleContext.department}
-                    onChange={(e) => updateRole("department", e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all"
-                  >
-                    <option value="">اختر الإدارة</option>
-                    {DEPARTMENTS.map((d) => (
-                      <option key={d} value={d}>{d}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                    مستوى الخبرة المطلوب
-                  </label>
-                  <select
-                    value={roleContext.experienceLevel}
-                    onChange={(e) => updateRole("experienceLevel", e.target.value as ExperienceLevel)}
-                    className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all"
-                  >
-                    {EXPERIENCE_LEVELS.map((l) => (
-                      <option key={l.value} value={l.value}>{l.label}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                  المهارات المطلوبة <span className="text-thmanyah-red">*</span>
-                </label>
+              <div className="relative">
                 <textarea
-                  value={roleContext.requiredSkills}
-                  onChange={(e) => updateRole("requiredSkills", e.target.value)}
-                  placeholder="مثال: React, TypeScript, Node.js, تصميم API"
-                  rows={2}
-                  className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all resize-none"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="اكتب هنا… مثلاً: نبحث عن منتج بودكاست بخبرة 5+ سنوات. مهم كتابة سكربت قوية، حس صحفي، وقدرة على إدارة ضيوف. الهدف إطلاق سلسلة جديدة في الربع القادم."
+                  rows={8}
+                  className="w-full px-5 py-4 rounded-2xl border-2 border-thmanyah-warm-border bg-white text-[15px] leading-relaxed focus:border-thmanyah-green focus:ring-4 focus:ring-thmanyah-green/15 outline-none transition-all resize-none font-body"
                 />
-              </div>
-
-              <div>
-                <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                  الوصف الوظيفي <span className="text-thmanyah-red">*</span>
-                </label>
-                <textarea
-                  value={roleContext.roleDescription}
-                  onChange={(e) => updateRole("roleDescription", e.target.value)}
-                  placeholder="اكتب وصفاً تفصيلياً للمهام والمسؤوليات..."
-                  rows={4}
-                  className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all resize-none"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                    مهارات مرغوبة (اختيارية)
-                  </label>
-                  <textarea
-                    value={roleContext.niceToHaveSkills}
-                    onChange={(e) => updateRole("niceToHaveSkills", e.target.value)}
-                    placeholder="مهارات إضافية تعطي أفضلية..."
-                    rows={2}
-                    className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all resize-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                    متطلبات اللغة
-                  </label>
-                  <input
-                    type="text"
-                    value={roleContext.languageRequirements}
-                    onChange={(e) => updateRole("languageRequirements", e.target.value)}
-                    placeholder="مثال: العربية والإنجليزية بطلاقة"
-                    className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all"
-                  />
+                <div className="absolute bottom-3 left-4 flex items-center gap-2 text-[12px] text-thmanyah-muted">
+                  <span>{description.length} حرف</span>
+                  {description.trim().length >= 20 && (
+                    <CheckCircle2 size={14} className="text-thmanyah-green" />
+                  )}
                 </div>
               </div>
 
+              {/* Example briefs */}
               <div>
-                <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-1.5">
-                  ملاحظات إضافية
-                </label>
-                <textarea
-                  value={roleContext.additionalNotes}
-                  onChange={(e) => updateRole("additionalNotes", e.target.value)}
-                  placeholder="أي معلومات إضافية تساعد في التقييم..."
-                  rows={2}
-                  className="w-full px-4 py-3 rounded-xl border border-thmanyah-warm-border bg-white text-[14px] focus:border-thmanyah-green focus:ring-2 focus:ring-thmanyah-green/20 outline-none transition-all resize-none"
-                />
+                <p className="text-[12px] text-thmanyah-muted mb-2">أمثلة سريعة:</p>
+                <div className="flex flex-wrap gap-2">
+                  {EXAMPLE_BRIEFS.map((ex, i) => (
+                    <button
+                      key={i}
+                      type="button"
+                      onClick={() => setDescription(ex)}
+                      className="text-[12px] px-3 py-1.5 rounded-full border border-thmanyah-warm-border bg-white hover:border-thmanyah-green hover:text-thmanyah-green transition-all"
+                    >
+                      {ex.slice(0, 50)}…
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              {description.trim().length > 0 && description.trim().length < 20 && (
+                <div className="flex items-center gap-2 p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-[13px]">
+                  <AlertCircle size={16} />
+                  أضف مزيداً من التفاصيل (20 حرفاً على الأقل) للحصول على تحليل دقيق
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between mt-8 pt-6 border-t border-thmanyah-warm-border">
@@ -424,7 +330,7 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
                 onClick={() => setStep(2)}
                 disabled={!canProceedStep1}
               >
-                التالي
+                متابعة لرفع الملفات
               </Button>
             </div>
           </div>
@@ -437,17 +343,35 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
           <div className="glass-card rounded-3xl p-6 sm:p-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
-                <User size={22} className="text-thmanyah-blue" />
+                <Upload size={22} className="text-thmanyah-blue" />
               </div>
               <div>
-                <h2 className="font-display font-bold text-[20px]">بيانات المرشح والملفات</h2>
+                <h2 className="font-display font-bold text-[20px]">رفع السيرة الذاتية أو الفيديو</h2>
                 <p className="text-[13px] text-thmanyah-muted">
-                  ارفع السيرة الذاتية و/أو الفيديو التعريفي
+                  PDF يتم تحويله لصور وإرساله لـ Gemini 2.5 Pro عبر OpenRouter
                 </p>
               </div>
             </div>
 
             <div className="space-y-5">
+              {/* Description summary */}
+              <div className="rounded-2xl bg-thmanyah-green-pale/40 border border-thmanyah-green/20 p-4">
+                <div className="flex items-start gap-2 mb-2">
+                  <Send size={14} className="text-thmanyah-green mt-0.5 shrink-0" />
+                  <p className="text-[12px] font-bold text-thmanyah-charcoal">وصف الدور:</p>
+                </div>
+                <p className="text-[13px] text-thmanyah-charcoal leading-relaxed line-clamp-3">
+                  {description}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="text-[12px] text-thmanyah-green hover:underline mt-2"
+                >
+                  تعديل الوصف
+                </button>
+              </div>
+
               {/* Candidate Info */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -480,7 +404,7 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
               {/* CV Upload */}
               <div>
                 <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-2">
-                  السيرة الذاتية
+                  السيرة الذاتية (PDF)
                 </label>
                 <input
                   ref={cvInputRef}
@@ -540,7 +464,8 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
               {/* Video Upload */}
               <div>
                 <label className="block text-[13px] font-bold text-thmanyah-charcoal mb-2">
-                  الفيديو التعريفي <span className="text-[12px] text-thmanyah-muted font-normal">(اختياري)</span>
+                  الفيديو التعريفي{" "}
+                  <span className="text-[12px] text-thmanyah-muted font-normal">(اختياري)</span>
                 </label>
                 <input
                   ref={videoInputRef}
@@ -664,7 +589,6 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
                   جاري التحليل بالذكاء الاصطناعي
                 </h3>
                 <p className="text-[14px] text-thmanyah-muted mb-6">{progressLabel}</p>
-                {/* Progress Bar */}
                 <div className="w-full max-w-md mx-auto">
                   <div className="w-full h-3 bg-thmanyah-warm-border rounded-full overflow-hidden">
                     <div
@@ -683,9 +607,7 @@ export default function NewAnalysis({ onComplete, onCancel }: NewAnalysisProps) 
                 <h3 className="font-display font-bold text-[22px] text-thmanyah-green mb-2">
                   اكتمل التحليل!
                 </h3>
-                <p className="text-[14px] text-thmanyah-muted">
-                  جاري عرض النتائج...
-                </p>
+                <p className="text-[14px] text-thmanyah-muted">جاري عرض النتائج...</p>
                 <Loader2 size={20} className="mx-auto mt-4 text-thmanyah-green animate-spin" />
               </>
             )}
